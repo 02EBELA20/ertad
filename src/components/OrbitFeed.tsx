@@ -17,6 +17,7 @@ import { categoryIcon } from '@/lib/categoryIcons';
 import { FeedItem } from '@/lib/feed';
 import { describeCategory } from '@/lib/posts';
 import { COSMOS, Glow } from '@/components/cosmos/Glow';
+import { FlagPlanet } from '@/components/cosmos/FlagPlanet';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -73,6 +74,8 @@ export function OrbitFeed({
   const spin = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
   const breathe = useRef(new Animated.Value(0)).current;
+  const boost = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
+  const sway = useRef(new Animated.Value(0)).current;
   const scales = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
 
   useFocusEffect(
@@ -119,16 +122,25 @@ export function OrbitFeed({
         Animated.timing(breathe, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
+    const sw = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sway, { toValue: 1, duration: 3600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(sway, { toValue: 0, duration: 3600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
     rot.start();
     br.start();
+    sw.start();
     return () => {
       rot.stop();
       br.stop();
+      sw.stop();
     };
   }, [active, reduceMotion, slotsCount, spin, breathe]);
 
   function showFeatured(idx: number) {
     featuredRef.current = idx;
+    boost.forEach((v, k) => Animated.spring(v, { toValue: k === idx ? 1.14 : 1, friction: 6, tension: 60, useNativeDriver: true }).start());
     fade.setValue(0);
     setFeaturedIdx(idx);
     Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
@@ -185,11 +197,34 @@ export function OrbitFeed({
         const d = (Math.sin(th) + 1) / 2; // 0 far .. 1 near
         xs.push(x0 * Math.cos(T) - y0 * Math.sin(T));
         ys.push(x0 * Math.sin(T) + y0 * Math.cos(T));
-        sc.push(0.5 + 0.72 * d);
+        sc.push(0.48 + 0.84 * d);
         op.push(0.45 + 0.55 * d);
       }
       return { input, xs, ys, sc, op };
     });
+  }, [RX]);
+
+  // Short comet tails: copies of each member's path, slightly behind in time.
+  const trails = useMemo(() => {
+    const input = Array.from({ length: STEPS + 1 }, (_, k) => k / STEPS);
+    const T = (TILT * Math.PI) / 180;
+    return Array.from({ length: MAX_SLOTS }, (_, i) =>
+      [0.012, 0.026, 0.042].map((lag) => {
+        const xs: number[] = [];
+        const ys: number[] = [];
+        const op: number[] = [];
+        for (let k = 0; k <= STEPS; k++) {
+          const th = 2 * Math.PI * (k / STEPS + phaseOf(i) - lag);
+          const x0 = RX * Math.cos(th);
+          const y0 = RX * RY * Math.sin(th);
+          const d = (Math.sin(th) + 1) / 2;
+          xs.push(x0 * Math.cos(T) - y0 * Math.sin(T));
+          ys.push(x0 * Math.sin(T) + y0 * Math.cos(T));
+          op.push(0.25 + 0.75 * d);
+        }
+        return { input, xs, ys, op };
+      }),
+    );
   }, [RX]);
 
   if (slotsCount === 0) return null;
@@ -214,13 +249,19 @@ export function OrbitFeed({
         <View style={[styles.abs, { transform: [{ rotate: `${TILT}deg` }] }]}>
           <Glow size={S * 0.8} squash={0.34} color={COSMOS.teal} intensity={0.22} />
         </View>
-        <Animated.View style={[styles.abs, { opacity: planetGlow }]}>
-          <Glow size={PLANET * 3.6} color={COSMOS.gold} intensity={0.5} />
+        <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 2.5, top: H / 2 - PLANET * 1.6 }]}>
+          <Glow size={PLANET * 3.2} color={[215, 38, 46]} intensity={0.34} />
+        </Animated.View>
+        <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 0.7, top: H / 2 - PLANET * 1.6 }]}>
+          <Glow size={PLANET * 3.2} color={[70, 100, 255]} intensity={0.34} />
         </Animated.View>
 
-        {/* the planet */}
+        {/* the planet: Georgia and America joined in one globe */}
         <Animated.View style={[styles.planet, { width: PLANET, height: PLANET, transform: [{ scale: planetScale }], zIndex: 50 }]}>
-          <MaterialCommunityIcons name={categoryIcon(fCat.slug)} size={28} color="rgba(255,244,214,0.95)" />
+          <FlagPlanet
+            size={PLANET}
+            sway={sway.interpolate({ inputRange: [0, 1], outputRange: [-7, 7] })}
+          />
         </Animated.View>
 
         {/* the orbiting members */}
@@ -235,6 +276,34 @@ export function OrbitFeed({
           const depthOpacity = spin.interpolate({ inputRange: tr.input, outputRange: tr.op });
           const accent = offer ? 'rgba(217,164,65,0.95)' : 'rgba(170,200,255,0.95)';
           return (
+            <View key={i} style={[styles.abs, { width: AVATAR, height: AVATAR, zIndex: zs[i] }]}>
+              {trails[i].map((t, j) => (
+                <Animated.View
+                  key={j}
+                  pointerEvents="none"
+                  style={[
+                    styles.abs,
+                    {
+                      width: 10 - j * 2.5,
+                      height: 10 - j * 2.5,
+                      left: AVATAR / 2 - (10 - j * 2.5) / 2,
+                      top: AVATAR / 2 - (10 - j * 2.5) / 2,
+                      borderRadius: 6,
+                      backgroundColor: offer ? 'rgba(255,214,120,1)' : 'rgba(160,190,255,1)',
+                      boxShadow: `0 0 8px 2px ${offer ? 'rgba(217,164,65,0.7)' : 'rgba(120,150,255,0.7)'}`,
+                      zIndex: 0,
+                      opacity: Animated.multiply(
+                        spin.interpolate({ inputRange: t.input, outputRange: t.op.map((o) => o * (0.55 - j * 0.15)) }),
+                        scales[i],
+                      ),
+                      transform: [
+                        { translateX: spin.interpolate({ inputRange: t.input, outputRange: t.xs }) },
+                        { translateY: spin.interpolate({ inputRange: t.input, outputRange: t.ys }) },
+                      ],
+                    },
+                  ]}
+                />
+              ))}
             <Animated.View
               key={i}
               style={[
@@ -242,12 +311,12 @@ export function OrbitFeed({
                 {
                   width: AVATAR,
                   height: AVATAR,
-                  zIndex: zs[i],
+                  zIndex: 1,
                   opacity: Animated.multiply(depthOpacity, scales[i]),
                   transform: [
                     { translateX: reduceMotion ? tr.xs[0] : x },
                     { translateY: reduceMotion ? tr.ys[0] : y },
-                    { scale: Animated.multiply(reduceMotion ? 1 : depthScale, scales[i]) },
+                    { scale: Animated.multiply(Animated.multiply(reduceMotion ? 1 : depthScale, scales[i]), boost[i]) },
                   ],
                 },
               ]}
@@ -278,6 +347,7 @@ export function OrbitFeed({
                 </View>
               </Pressable>
             </Animated.View>
+            </View>
           );
         })}
       </View>
@@ -325,9 +395,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#C98F2E',
-    boxShadow:
-      'inset -14px -14px 24px rgba(40,18,0,0.75), inset 8px 8px 16px rgba(255,226,150,0.55), 0 0 40px 8px rgba(217,164,65,0.45)',
+    boxShadow: '0 0 34px 6px rgba(215,38,46,0.28), 0 0 34px 6px rgba(60,90,220,0.28)',
   },
   avatarFrame: {
     width: AVATAR,
