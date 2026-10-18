@@ -3,6 +3,8 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  Image,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -17,7 +19,6 @@ import { categoryIcon } from '@/lib/categoryIcons';
 import { FeedItem } from '@/lib/feed';
 import { describeCategory } from '@/lib/posts';
 import { COSMOS, Glow } from '@/components/cosmos/Glow';
-import { FlagPlanet } from '@/components/cosmos/FlagPlanet';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -217,9 +218,10 @@ export function OrbitFeed({
 
   const featured = slots[featuredIdx] ?? slots[0];
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
-  const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
-  const PLANET = 84;
+  const MAP_W = Math.min(190, S * 0.54);
+  const MAP_H = (MAP_W * 486) / 900;
 
   return (
     <View style={styles.wrap}>
@@ -235,16 +237,42 @@ export function OrbitFeed({
         <View style={[styles.abs, { transform: [{ rotate: `${TILT}deg` }] }]}>
           <Glow size={S * 0.8} squash={0.34} color={COSMOS.teal} intensity={0.22} />
         </View>
-        <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 2.5, top: H / 2 - PLANET * 1.6 }]}>
-          <Glow size={PLANET * 3.4} color={[215, 38, 46]} intensity={0.6} />
+        <Animated.View style={[styles.abs, { opacity: planetGlow }]}>
+          <Glow size={MAP_W * 2.1} squash={0.8} color={[255, 214, 140]} intensity={0.42} />
         </Animated.View>
-        <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 0.7, top: H / 2 - PLANET * 1.6 }]}>
-          <Glow size={PLANET * 3.4} color={[70, 100, 255]} intensity={0.6} />
+        <Animated.View style={[styles.abs, { opacity: planetGlow, transform: [{ translateX: -MAP_W * 0.42 }] }]}>
+          <Glow size={MAP_W * 1.5} squash={0.8} color={[215, 38, 46]} intensity={0.55} />
+        </Animated.View>
+        <Animated.View style={[styles.abs, { opacity: planetGlow, transform: [{ translateX: MAP_W * 0.42 }] }]}>
+          <Glow size={MAP_W * 1.5} squash={0.8} color={[70, 100, 255]} intensity={0.55} />
         </Animated.View>
 
-        {/* the planet: Georgia and America joined in one globe */}
-        <Animated.View style={[styles.planet, { width: PLANET, height: PLANET, transform: [{ scale: planetScale }], zIndex: 50 }]}>
-          <FlagPlanet size={PLANET} />
+        {/* the centrepiece: Georgia's outline filled with the Georgian and American flags */}
+        <Animated.View
+          style={[
+            styles.abs,
+            {
+              width: MAP_W,
+              height: MAP_H,
+              zIndex: 50,
+              transform: [
+                { scale: planetScale },
+                { rotate: breathe.interpolate({ inputRange: [0, 1], outputRange: ['-2.5deg', '2.5deg'] }) },
+                { translateY: breathe.interpolate({ inputRange: [0, 1], outputRange: [-3, 3] }) },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/images/georgia-usa.png')}
+            style={[
+              { width: MAP_W, height: MAP_H },
+              Platform.OS === 'web'
+                ? ({ filter: 'drop-shadow(0 0 10px rgba(255,214,120,0.7)) drop-shadow(0 6px 14px rgba(0,0,0,0.5))' } as object)
+                : null,
+            ]}
+            resizeMode="contain"
+          />
         </Animated.View>
 
         {/* the orbiting members */}
