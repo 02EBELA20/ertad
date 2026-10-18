@@ -121,7 +121,8 @@ export default function BecomeSpecialistScreen() {
     }
     const ids = (data.ids as string[]).filter((id) => lookup.has(id)).slice(0, 3);
     if (ids.length === 0 && !data.bio) {
-      setError(ka.specialist.aiNoMatch + (__DEV__ && data.debug ? ` ${JSON.stringify(data.debug).slice(0, 300)}` : ''));
+      if (__DEV__) console.log('draft-provider-profile no match', data.debug);
+      setError(ka.specialist.aiNoMatch);
       return;
     }
     if (ids.length > 0) setCategoryIds(ids);
