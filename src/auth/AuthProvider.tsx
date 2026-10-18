@@ -89,11 +89,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
+    // Remove the user's avatar files first (best effort), then the account itself.
+    if (userId) {
+      const files = await supabase.storage.from('avatars').list(userId);
+      if (files.data && files.data.length > 0) {
+        await supabase.storage.from('avatars').remove(files.data.map((f) => `${userId}/${f.name}`));
+      }
+    }
     const { error } = await supabase.rpc('delete_my_account');
     if (error) return error.message;
     await supabase.auth.signOut({ scope: 'local' });
     return null;
-  }, []);
+  }, [userId]);
 
   const value = useMemo<AuthState>(
     () => ({

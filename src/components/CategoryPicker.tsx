@@ -16,6 +16,7 @@ type Props = {
   /** adds an "all" row that clears the selection (for filters) */
   allowAll?: boolean;
   label?: string;
+  placeholder?: string;
 };
 
 function Row({
@@ -40,7 +41,7 @@ function Row({
   );
 }
 
-export function CategoryPicker({ value, onChange, allowAll, label }: Props) {
+export function CategoryPicker({ value, onChange, allowAll, label, placeholder }: Props) {
   const { groups, loading, error, reload } = useCategories();
   const [open, setOpen] = useState(false);
   const [group, setGroup] = useState<CategoryGroup | null>(null);
@@ -75,7 +76,7 @@ export function CategoryPicker({ value, onChange, allowAll, label }: Props) {
 
       <Pressable onPress={() => setOpen(true)} style={styles.field} accessibilityRole="button">
         <AppText numberOfLines={1} style={[styles.fieldText, !selectedText && { color: colors.textMuted }]}>
-          {selectedText ?? (allowAll ? ka.categories.all : ka.categories.choose)}
+          {selectedText ?? placeholder ?? (allowAll ? ka.categories.all : ka.categories.choose)}
         </AppText>
         <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
       </Pressable>

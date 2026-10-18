@@ -135,7 +135,7 @@ export default function HomeScreen() {
                 {ka.home.browseAll}
               </AppText>
             </Pressable>
-            <Pressable onPress={() => router.push('/profile')} accessibilityRole="button">
+            <Pressable onPress={() => router.push('/become-specialist')} accessibilityRole="button">
               <AppText muted style={styles.linkText}>
                 {ka.home.canDo}
               </AppText>

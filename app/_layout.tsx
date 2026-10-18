@@ -53,6 +53,7 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !!profile}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="become-specialist" />
       </Stack.Protected>
     </Stack>
   );
