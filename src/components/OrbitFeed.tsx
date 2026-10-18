@@ -307,43 +307,22 @@ export function OrbitFeed({
         })}
       </View>
 
-      {/* introduction card for the selected member */}
-      <Pressable
-        onPress={() => featured && onOpen(featured)}
-        style={styles.card}
-        accessibilityRole="button"
-      >
+      {/* light caption for the selected member: no box, just two lines of text */}
+      <Pressable onPress={() => featured && onOpen(featured)} style={styles.caption} accessibilityRole="button">
         {featured ? (
-          <Animated.View style={[styles.cardInner, { opacity: fade }]}>
-            <Animated.View
-              style={[
-                styles.cardAvatar,
-                {
-                  transform: [
-                    { translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [-90, 0] }) },
-                    { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
-                  ],
-                },
-              ]}
-            >
-              <Avatar path={featured.photo} size={40} />
-            </Animated.View>
-            <View style={styles.cardText}>
-              <AppText weight="bold" numberOfLines={1} style={styles.cardName}>
-                {featured.title || '—'}
-              </AppText>
-              <AppText weight="medium" numberOfLines={1} style={styles.cardKind}>
-                {featured.kind === 'offer' ? ka.feed.offers : ka.feed.seeks}: {fCat.label}
-              </AppText>
-              <View style={styles.cardCity}>
-                <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-                <AppText muted numberOfLines={1} style={styles.cardCityText}>
-                  {featured.city}
-                  {featured.is_demo ? ` · ${ka.feed.demo}` : ''}
-                </AppText>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.accent} />
+          <Animated.View
+            style={{
+              alignItems: 'center',
+              opacity: fade,
+              transform: [{ translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+            }}
+          >
+            <AppText weight="bold" numberOfLines={1} style={styles.capName}>
+              {featured.title || '—'}
+            </AppText>
+            <AppText numberOfLines={1} style={styles.capKind}>
+              {featured.kind === 'offer' ? ka.feed.offers : ka.feed.seeks}: {fCat.label} · {featured.city}
+            </AppText>
           </Animated.View>
         ) : null}
       </Pressable>
@@ -385,38 +364,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bg,
   },
   badgeSeek: { backgroundColor: colors.surface },
-  card: {
-    alignSelf: 'stretch',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(10,16,32,0.7)',
-    padding: 9,
-    marginTop: 22,
-  },
-  cardInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  cardAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 2,
-    borderColor: 'rgba(217,164,65,0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    boxShadow: '0 0 18px 2px rgba(217,164,65,0.6)',
-  },
-  cardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(217,164,65,0.14)',
-  },
-  cardText: { flex: 1, gap: 1, alignItems: 'center' },
-  cardName: { fontSize: 16, lineHeight: 22, textAlign: 'center', color: colors.accent },
-  cardKind: { fontSize: 12, lineHeight: 17, textAlign: 'center', color: 'rgba(240,215,160,0.9)' },
-  cardCity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  cardCityText: { fontSize: 12, lineHeight: 16 },
+  caption: { alignSelf: 'stretch', alignItems: 'center', marginTop: 14, minHeight: 50, paddingHorizontal: 12 },
+  capName: { fontSize: 18, lineHeight: 25, textAlign: 'center', color: colors.accent },
+  capKind: { fontSize: 13, lineHeight: 19, textAlign: 'center', color: 'rgba(240,215,160,0.8)' },
 });
