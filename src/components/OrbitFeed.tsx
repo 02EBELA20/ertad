@@ -190,29 +190,6 @@ export function OrbitFeed({
     });
   }, [RX]);
 
-  // Short comet tails: copies of each member's path, slightly behind in time.
-  const trails = useMemo(() => {
-    const input = Array.from({ length: STEPS + 1 }, (_, k) => k / STEPS);
-    const T = (TILT * Math.PI) / 180;
-    return Array.from({ length: MAX_SLOTS }, (_, i) =>
-      [0.012, 0.026, 0.042, 0.06].map((lag) => {
-        const xs: number[] = [];
-        const ys: number[] = [];
-        const op: number[] = [];
-        for (let k = 0; k <= STEPS; k++) {
-          const th = 2 * Math.PI * (k / STEPS + phaseOf(i) - lag);
-          const x0 = RX * Math.cos(th);
-          const y0 = RX * RY * Math.sin(th);
-          const d = (Math.sin(th) + 1) / 2;
-          xs.push(x0 * Math.cos(T) - y0 * Math.sin(T));
-          ys.push(x0 * Math.sin(T) + y0 * Math.cos(T));
-          op.push(0.25 + 0.75 * d);
-        }
-        return { input, xs, ys, op };
-      }),
-    );
-  }, [RX]);
-
   if (slotsCount === 0) return null;
 
   const featured = slots[featuredIdx] ?? slots[0];
@@ -282,33 +259,6 @@ export function OrbitFeed({
           const accent = offer ? 'rgba(217,164,65,0.95)' : 'rgba(170,200,255,0.95)';
           return (
             <View key={i} style={[styles.abs, { width: AVATAR, height: AVATAR, zIndex: zs[i] }]}>
-              {trails[i].map((t, j) => (
-                <Animated.View
-                  key={j}
-                  pointerEvents="none"
-                  style={[
-                    styles.abs,
-                    {
-                      width: 10 - j * 2.5,
-                      height: 10 - j * 2.5,
-                      left: AVATAR / 2 - (10 - j * 2.5) / 2,
-                      top: AVATAR / 2 - (10 - j * 2.5) / 2,
-                      borderRadius: 6,
-                      backgroundColor: offer ? 'rgba(255,214,120,1)' : 'rgba(160,190,255,1)',
-                      boxShadow: `0 0 8px 2px ${offer ? 'rgba(217,164,65,0.7)' : 'rgba(120,150,255,0.7)'}`,
-                      zIndex: 0,
-                      opacity: Animated.multiply(
-                        spin.interpolate({ inputRange: t.input, outputRange: t.op.map((o) => o * (0.55 - j * 0.15)) }),
-                        scales[i],
-                      ),
-                      transform: [
-                        { translateX: spin.interpolate({ inputRange: t.input, outputRange: t.xs }) },
-                        { translateY: spin.interpolate({ inputRange: t.input, outputRange: t.ys }) },
-                      ],
-                    },
-                  ]}
-                />
-              ))}
             <Animated.View
               key={i}
               style={[
