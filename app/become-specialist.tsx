@@ -14,6 +14,7 @@ import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { toE164 } from '@/lib/phone';
 import { LICENSED_SLUGS, fetchMyProvider, saveMyProvider } from '@/lib/provider';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -41,6 +42,10 @@ export default function BecomeSpecialistScreen() {
   const [allowFeed, setAllowFeed] = useState(false);
   const [consent, setConsent] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  const [about, setAbout] = useState('');
+  const [drafting, setDrafting] = useState(false);
+  const [aiDone, setAiDone] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -100,6 +105,28 @@ export default function BecomeSpecialistScreen() {
       }
       return [...cur, id];
     });
+  }
+
+  async function draftWithAi() {
+    const text = about.trim();
+    if (text.length < 5 || drafting) return;
+    setDrafting(true);
+    setError(null);
+    const { data, error: err } = await supabase.functions.invoke('draft-provider-profile', { body: { text } });
+    setDrafting(false);
+    if (err || !data || !Array.isArray(data.ids)) {
+      setError(ka.specialist.aiFailed);
+      return;
+    }
+    const ids = (data.ids as string[]).filter((id) => lookup.has(id)).slice(0, 3);
+    if (ids.length === 0 && !data.bio) {
+      setError(ka.specialist.aiNoMatch);
+      return;
+    }
+    if (ids.length > 0) setCategoryIds(ids);
+    if (typeof data.bio === 'string' && data.bio) setBio(data.bio);
+    if (typeof data.price === 'string' && data.price) setPrice(data.price);
+    setAiDone(true);
   }
 
   async function pickPhoto() {
@@ -210,7 +237,35 @@ export default function BecomeSpecialistScreen() {
               <AppText weight="bold" style={styles.title}>
                 {ka.specialist.step1Title}
               </AppText>
-              <AppText muted>{ka.specialist.step1Hint}</AppText>
+              <AppText muted>{ka.specialist.aiHint}</AppText>
+
+              <AppInput
+                label={ka.specialist.aboutLabel}
+                placeholder={ka.specialist.aboutPlaceholder}
+                value={about}
+                onChangeText={setAbout}
+                multiline
+                maxLength={800}
+                style={styles.multiline}
+              />
+              <AppButton
+                variant="secondary"
+                title={ka.specialist.aiFill}
+                onPress={draftWithAi}
+                loading={drafting}
+                disabled={about.trim().length < 5}
+              />
+              {aiDone ? (
+                <AppText muted style={styles.small}>
+                  {ka.specialist.aiDone}
+                </AppText>
+              ) : null}
+
+              {categoryIds.length > 0 ? (
+                <AppText muted style={styles.small}>
+                  {ka.specialist.step1Hint}
+                </AppText>
+              ) : null}
 
               {categoryIds.map((id) => {
                 const info = lookup.get(id);
@@ -232,7 +287,7 @@ export default function BecomeSpecialistScreen() {
               })}
 
               {categoryIds.length < 3 ? (
-                <CategoryPicker value={null} onChange={addCategory} placeholder={ka.specialist.addCategory} />
+                <CategoryPicker value={null} onChange={addCategory} placeholder={categoryIds.length === 0 ? ka.specialist.manualCategory : ka.specialist.addCategory} />
               ) : null}
             </View>
           ) : null}
