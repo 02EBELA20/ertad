@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AiGlowFrame } from '@/components/cosmos/AiGlowFrame';
 import { CosmosBackground } from '@/components/cosmos/CosmosBackground';
-import { SpotlightFeed } from '@/components/SpotlightFeed';
+import { OrbitFeed } from '@/components/OrbitFeed';
 import { FeedItem, fetchHomeFeed } from '@/lib/feed';
 import { useCategories } from '@/lib/categories';
 import { supabase } from '@/lib/supabase';
@@ -163,7 +163,7 @@ export default function HomeScreen() {
           ) : null}
 
           {feed.length > 0 ? (
-            <SpotlightFeed
+            <OrbitFeed
               items={feed}
               groups={groups}
               onOpen={(item) =>
