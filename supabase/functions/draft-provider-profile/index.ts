@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 700,
+      max_tokens: 1000,
       system,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -86,7 +86,8 @@ Deno.serve(async (req: Request) => {
   if (!res.ok) return json({ error: 'ai_failed', status: res.status, detail: (await res.text()).slice(0, 300) }, 502);
 
   const out = await res.json();
-  const raw: string = out?.content?.[0]?.text ?? '';
+  const block = (out?.content ?? []).find((b: { type: string }) => b.type === 'text');
+  const raw: string = block?.text ?? '';
   let ids: string[] = [];
   let bio = '';
   let price: string | null = null;
@@ -97,8 +98,8 @@ Deno.serve(async (req: Request) => {
     if (typeof parsed.bio === 'string') bio = parsed.bio.trim().slice(0, 600);
     if (typeof parsed.price === 'string' && parsed.price.trim()) price = parsed.price.trim().slice(0, 60);
   } catch {
-    return json({ ids: [], bio: '', price: null, debug: raw.slice(0, 300) });
+    return json({ ids: [], bio: '', price: null, debug: { raw: raw.slice(0, 300), options: options.length } });
   }
   ids = [...new Set(ids)].filter((id) => valid.has(id)).slice(0, 3);
-  return json({ ids, bio, price, debug: ids.length === 0 && !bio ? raw.slice(0, 300) : undefined });
+  return json({ ids, bio, price, debug: ids.length === 0 && !bio ? { raw: raw.slice(0, 300), options: options.length, blocks: (out?.content ?? []).map((b: { type: string }) => b.type) } : undefined });
 });

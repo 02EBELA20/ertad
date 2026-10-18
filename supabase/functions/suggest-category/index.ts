@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 200,
+      max_tokens: 400,
       system,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -84,16 +84,17 @@ Deno.serve(async (req: Request) => {
   if (!res.ok) return json({ error: 'ai_failed', status: res.status, detail: (await res.text()).slice(0, 300) }, 502);
 
   const out = await res.json();
-  const raw: string = out?.content?.[0]?.text ?? '';
+  const block = (out?.content ?? []).find((b: { type: string }) => b.type === 'text');
+  const raw: string = block?.text ?? '';
   let ids: string[] = [];
   try {
     const match = raw.match(/\{[\s\S]*\}/);
     const parsed = JSON.parse(match ? match[0] : raw);
     if (Array.isArray(parsed.ids)) ids = parsed.ids;
   } catch {
-    return json({ ids: [] });
+    return json({ ids: [], debug: { raw: raw.slice(0, 300), options: options.length } });
   }
   // Only ids that really exist; never trust model output.
   ids = [...new Set(ids)].filter((id) => valid.has(id)).slice(0, 3);
-  return json({ ids });
+  return json({ ids, debug: ids.length === 0 ? { raw: raw.slice(0, 300), options: options.length, blocks: (out?.content ?? []).map((b: { type: string }) => b.type) } : undefined });
 });

@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Suggestion[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   function describe(id: string): Suggestion | null {
     for (const g of groups) {
@@ -42,6 +43,7 @@ export default function HomeScreen() {
       setFailed(true);
       return;
     }
+    if (__DEV__ && data.debug) setDebugInfo(JSON.stringify(data.debug).slice(0, 400));
     const found = (data.ids as string[]).map(describe).filter((s): s is Suggestion => s !== null);
     setResults(found);
   }
@@ -122,6 +124,11 @@ export default function HomeScreen() {
           {(results && results.length === 0) || failed ? (
             <View style={styles.block}>
               <AppText muted>{failed ? ka.home.failed : ka.home.noMatch}</AppText>
+              {__DEV__ && debugInfo ? (
+                <AppText muted style={styles.small}>
+                  {debugInfo}
+                </AppText>
+              ) : null}
               <Pressable onPress={() => open(null)} style={styles.link} accessibilityRole="button">
                 <AppText weight="medium" style={styles.linkText}>
                   {ka.home.browseAll}
