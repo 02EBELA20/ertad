@@ -326,7 +326,7 @@ export function OrbitFeed({
                 },
               ]}
             >
-              <Avatar path={featured.photo} size={48} />
+              <Avatar path={featured.photo} size={40} />
             </Animated.View>
             <View style={styles.cardText}>
               <AppText weight="bold" numberOfLines={1} style={styles.cardName}>
@@ -352,7 +352,7 @@ export function OrbitFeed({
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 8, alignSelf: 'stretch' },
+  wrap: { alignItems: 'center', gap: 6, alignSelf: 'stretch' },
   title: { fontSize: 18, lineHeight: 26, alignSelf: 'center', textAlign: 'center', color: colors.accent },
   abs: { position: 'absolute' },
   planet: {
@@ -391,13 +391,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     backgroundColor: 'rgba(10,16,32,0.7)',
-    padding: 12,
+    padding: 9,
+    marginTop: 22,
   },
   cardInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 2,
     borderColor: 'rgba(217,164,65,0.95)',
     alignItems: 'center',
@@ -414,8 +415,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,164,65,0.14)',
   },
   cardText: { flex: 1, gap: 1, alignItems: 'center' },
-  cardName: { fontSize: 17, lineHeight: 24, textAlign: 'center', color: colors.accent },
-  cardKind: { fontSize: 13, lineHeight: 18, textAlign: 'center', color: 'rgba(240,215,160,0.9)' },
+  cardName: { fontSize: 16, lineHeight: 22, textAlign: 'center', color: colors.accent },
+  cardKind: { fontSize: 12, lineHeight: 17, textAlign: 'center', color: 'rgba(240,215,160,0.9)' },
   cardCity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
   cardCityText: { fontSize: 12, lineHeight: 16 },
 });

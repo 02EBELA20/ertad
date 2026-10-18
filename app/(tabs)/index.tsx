@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
+import { AiGlowFrame } from '@/components/cosmos/AiGlowFrame';
 import { CosmosBackground } from '@/components/cosmos/CosmosBackground';
 import { OrbitFeed } from '@/components/OrbitFeed';
 import { FeedItem, fetchHomeFeed } from '@/lib/feed';
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const [failed, setFailed] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [focused, setFocused] = useState(false);
 
   // A fresh random set every time the home screen gets focus.
   useFocusEffect(
@@ -90,50 +92,54 @@ export default function HomeScreen() {
             <AppText style={styles.heroHint}>{ka.home.assistantHint}</AppText>
           </View>
 
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={text}
-              onChangeText={(t) => {
-                setText(t);
-                if (results || failed) {
-                  setResults(null);
-                  setFailed(false);
-                }
-              }}
-              placeholder={ka.home.placeholder}
-              placeholderTextColor={colors.textMuted}
-              selectionColor={colors.accent}
-              style={styles.input}
-              multiline
-              maxLength={300}
-              returnKeyType="search"
-              blurOnSubmit
-              onSubmitEditing={onAsk}
-            />
-            <Pressable
-              onPress={onAsk}
-              disabled={busy || text.trim().length < 2}
-              style={[styles.send, (busy || text.trim().length < 2) && styles.sendOff]}
-              accessibilityRole="button"
-              accessibilityLabel={ka.home.ask}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.onAccent} />
-              ) : (
-                <Ionicons name="arrow-forward" size={22} color={colors.onAccent} />
-              )}
-            </Pressable>
-          </View>
+          <AiGlowFrame focused={focused}>
+            <View style={styles.inputWrap}>
+              <TextInput
+                value={text}
+                onChangeText={(t) => {
+                  setText(t);
+                  if (results || failed) {
+                    setResults(null);
+                    setFailed(false);
+                  }
+                }}
+                placeholder={ka.home.placeholder}
+                placeholderTextColor={colors.textMuted}
+                selectionColor={colors.accent}
+                style={styles.input}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+                multiline
+                maxLength={300}
+                returnKeyType="search"
+                blurOnSubmit
+                onSubmitEditing={onAsk}
+              />
+              <Pressable
+                onPress={onAsk}
+                disabled={busy || text.trim().length < 2}
+                style={[styles.send, (busy || text.trim().length < 2) && styles.sendOff]}
+                accessibilityRole="button"
+                accessibilityLabel={ka.home.ask}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.onAccent} />
+                ) : (
+                  <Ionicons name="arrow-forward" size={22} color={colors.onAccent} />
+                )}
+              </Pressable>
+            </View>
+          </AiGlowFrame>
 
           <View style={styles.twoButtons}>
             <Pressable onPress={() => open(null)} style={[styles.bigBtn, styles.bigBtnPrimary]} accessibilityRole="button">
-              <Ionicons name="search" size={20} color={colors.onAccent} />
+              <Ionicons name="search" size={18} color={colors.onAccent} />
               <AppText weight="bold" style={styles.bigBtnPrimaryText}>
                 {ka.home.need}
               </AppText>
             </Pressable>
             <Pressable onPress={() => router.push('/become-specialist')} style={[styles.bigBtn, styles.bigBtnGhost]} accessibilityRole="button">
-              <Ionicons name="hand-left-outline" size={20} color={colors.accent} />
+              <Ionicons name="hand-left-outline" size={18} color={colors.accent} />
               <AppText weight="bold" style={styles.bigBtnGhostText}>
                 {ka.home.can}
               </AppText>
@@ -177,7 +183,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
-  content: { padding: 20, paddingTop: 10, gap: 14 },
+  content: { padding: 20, paddingTop: 10, paddingBottom: 28, gap: 16 },
   hero: { gap: 4, alignItems: 'center' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   brandName: { fontSize: 18, lineHeight: 26, color: 'rgba(240,215,160,0.95)', letterSpacing: 0.5 },
@@ -197,12 +203,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
-    padding: 10,
+    padding: 8,
     paddingLeft: 16,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(19,28,46,0.72)',
   },
   input: {
     flex: 1,
@@ -229,17 +231,17 @@ const styles = StyleSheet.create({
   twoButtons: { flexDirection: 'row', gap: 12 },
   bigBtn: {
     flex: 1,
-    height: 54,
-    borderRadius: 27,
+    height: 44,
+    borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  bigBtnPrimary: { backgroundColor: colors.accent, boxShadow: '0 0 22px rgba(217,164,65,0.45)' },
+  bigBtnPrimary: { backgroundColor: colors.accent, boxShadow: '0 0 16px rgba(217,164,65,0.4)' },
   bigBtnGhost: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: 'rgba(19,28,46,0.6)' },
-  bigBtnPrimaryText: { color: colors.onAccent, fontSize: 17, lineHeight: 24 },
-  bigBtnGhostText: { color: colors.accent, fontSize: 17, lineHeight: 24 },
+  bigBtnPrimaryText: { color: colors.onAccent, fontSize: 15, lineHeight: 22 },
+  bigBtnGhostText: { color: colors.accent, fontSize: 15, lineHeight: 22 },
   block: { gap: 10 },
   small: { fontSize: 13, lineHeight: 18 },
   result: {
