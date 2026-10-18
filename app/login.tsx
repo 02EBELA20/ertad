@@ -66,6 +66,15 @@ export default function LoginScreen() {
     // on success the session arrives via onAuthStateChange and the layout switches screens
   }
 
+  // Development only: sign in without SMS (anonymous user). Compiled out of production builds.
+  async function onDevLogin() {
+    setBusy(true);
+    setError(null);
+    const { error: err } = await supabase.auth.signInAnonymously();
+    setBusy(false);
+    if (err) setError(`${ka.auth.devLoginFailed}: ${err.message}`);
+  }
+
   return (
     <FormScreen>
       <View style={styles.header}>
@@ -122,6 +131,15 @@ export default function LoginScreen() {
           />
         </View>
       )}
+
+      {__DEV__ ? (
+        <AppButton
+          variant="secondary"
+          title={ka.auth.devLogin}
+          onPress={onDevLogin}
+          disabled={busy}
+        />
+      ) : null}
 
       <AppText muted style={styles.note}>
         {ka.auth.adultNote}
