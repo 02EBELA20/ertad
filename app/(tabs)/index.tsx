@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,14 +22,23 @@ export default function HomeScreen() {
   const [failed, setFailed] = useState(false);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [focused, setFocused] = useState(false);
+  const [feedLoaded, setFeedLoaded] = useState(false);
 
   // A fresh random set every time the home screen gets focus.
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       fetchHomeFeed(12)
-        .then((items) => alive && setFeed(items))
-        .catch(() => alive && setFeed([]));
+        .then((items) => {
+          if (!alive) return;
+          setFeed(items);
+          setFeedLoaded(true);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setFeed([]);
+          setFeedLoaded(true);
+        });
       return () => {
         alive = false;
       };
@@ -175,6 +184,24 @@ export default function HomeScreen() {
             />
           ) : null}
 
+          {feed.length === 0 && feedLoaded ? (
+            <View style={styles.starting}>
+              <Image
+                source={require('../../assets/images/georgia-usa.png')}
+                style={{ width: 150, height: 79, opacity: 0.9 }}
+                resizeMode="contain"
+              />
+              <AppText weight="bold" style={styles.startingTitle}>
+                {ka.home.startingTitle}
+              </AppText>
+              <AppText style={styles.startingText}>{ka.home.startingText}</AppText>
+              <Pressable onPress={() => router.push('/become-specialist')} hitSlop={8} accessibilityRole="button">
+                <AppText weight="medium" style={styles.startingLink}>
+                  {ka.home.startingCta}
+                </AppText>
+              </Pressable>
+            </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -253,6 +280,10 @@ const styles = StyleSheet.create({
   bigBtnGhost: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: 'rgba(19,28,46,0.6)' },
   bigBtnPrimaryText: { color: colors.onAccent, fontSize: 15, lineHeight: 22 },
   bigBtnGhostText: { color: colors.accent, fontSize: 15, lineHeight: 22 },
+  starting: { alignItems: 'center', gap: 10, paddingTop: 36, paddingHorizontal: 12 },
+  startingTitle: { fontSize: 18, lineHeight: 26, color: colors.accent, textAlign: 'center', marginTop: 6 },
+  startingText: { fontSize: 14, lineHeight: 21, textAlign: 'center', color: 'rgba(240,215,160,0.8)', maxWidth: 300 },
+  startingLink: { fontSize: 15, lineHeight: 22, color: colors.accent, textDecorationLine: 'underline', marginTop: 4 },
   miss: {
     gap: 12,
     padding: 14,
