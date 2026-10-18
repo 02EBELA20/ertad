@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
 import { useCategories, CategoryGroup } from '@/lib/categories';
+import { categoryIcon } from '@/lib/categoryIcons';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -90,6 +91,7 @@ export function CategoryPicker({ value, onChange, allowAll, label }: Props) {
             >
               <Ionicons name={group ? 'chevron-back' : 'close'} size={26} color={colors.text} />
             </Pressable>
+            {group ? <MaterialCommunityIcons name={categoryIcon(group.parent.slug)} size={24} color={colors.accent} /> : null}
             <AppText weight="bold" style={styles.headerTitle} numberOfLines={1}>
               {group ? group.parent.name_ka : ka.categories.choose}
             </AppText>
@@ -115,14 +117,23 @@ export function CategoryPicker({ value, onChange, allowAll, label }: Props) {
             ) : (
               <>
                 {allowAll ? <Row label={ka.categories.all} selected={value === null} onPress={() => choose(null)} /> : null}
-                {groups.map((g) => (
-                  <Row
-                    key={g.parent.id}
-                    label={g.parent.name_ka}
-                    chevron={g.children.length > 0}
-                    onPress={() => (g.children.length > 0 ? setGroup(g) : choose(g.parent.id))}
-                  />
-                ))}
+                <View style={styles.grid}>
+                  {groups.map((g) => (
+                    <Pressable
+                      key={g.parent.id}
+                      style={styles.tile}
+                      accessibilityRole="button"
+                      onPress={() => (g.children.length > 0 ? setGroup(g) : choose(g.parent.id))}
+                    >
+                      <View style={styles.tileIcon}>
+                        <MaterialCommunityIcons name={categoryIcon(g.parent.slug)} size={30} color={colors.accent} />
+                      </View>
+                      <AppText weight="medium" style={styles.tileText} numberOfLines={2}>
+                        {g.parent.name_ka}
+                      </AppText>
+                    </Pressable>
+                  ))}
+                </View>
               </>
             )}
           </ScrollView>
@@ -164,4 +175,26 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTextSelected: { color: colors.accent },
   msg: { padding: 20, gap: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, padding: 20 },
+  tile: {
+    width: '47.5%',
+    flexGrow: 1,
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  tileIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bg,
+  },
+  tileText: { fontSize: 14, lineHeight: 22, textAlign: 'center' },
 });
