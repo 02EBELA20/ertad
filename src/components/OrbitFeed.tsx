@@ -220,7 +220,7 @@ export function OrbitFeed({
   const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
   const MAP_W = Math.min(150, S * 0.44);
-  const MAP_H = (MAP_W * 486) / 900;
+  const MAP_H = (MAP_W * 338) / 640;
 
   return (
     <View style={styles.wrap}>
