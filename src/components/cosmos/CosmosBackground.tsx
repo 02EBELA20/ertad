@@ -81,7 +81,11 @@ export function CosmosBackground() {
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const twinkle = useRef([0, 1, 2].map(() => new Animated.Value(0.4))).current;
-  const drift = useRef(new Animated.Value(0)).current;
+  const layerY = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  const layerX = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  const nebulaRot = useRef(new Animated.Value(0)).current;
+  const bandSwing = useRef(new Animated.Value(0)).current;
+  const nebulaBreath = useRef(new Animated.Value(0)).current;
   const shoot = useRef(new Animated.Value(0)).current;
   const [shot, setShot] = useState({ x: W * 0.8, y: H * 0.1, angle: 155, len: 140, dist: 260 });
 
@@ -120,6 +124,17 @@ export function CosmosBackground() {
     });
   }, [W, H]);
 
+  const motes = useMemo(() => {
+    const r = rng(909);
+    const colorsList = ['rgba(150,170,255,0.5)', 'rgba(255,200,140,0.45)', 'rgba(200,150,255,0.45)'];
+    return Array.from({ length: 12 }, () => ({
+      x: r() * W,
+      y: r() * H,
+      size: 2 + r() * 2.5,
+      color: colorsList[Math.floor(r() * colorsList.length)],
+    }));
+  }, [W, H]);
+
   const sparkles = useMemo(() => {
     const r = rng(4242);
     return Array.from({ length: 9 }, (_, i) => ({
@@ -135,24 +150,36 @@ export function CosmosBackground() {
     const loops = twinkle.map((v, i) =>
       Animated.loop(
         Animated.sequence([
-          Animated.timing(v, { toValue: 1, duration: 1800 + i * 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0.25, duration: 2200 + i * 500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: 1800 + i * 700, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
+          Animated.timing(v, { toValue: 0.25, duration: 2200 + i * 500, easing: Easing.inOut(Easing.sin), useNativeDriver: false }),
         ]),
       ),
     );
-    const d = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, { toValue: 1, duration: 18000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(drift, { toValue: 0, duration: 18000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
     loops.forEach((l) => l.start());
-    d.start();
-    return () => {
-      loops.forEach((l) => l.stop());
-      d.stop();
+    return () => loops.forEach((l) => l.stop());
+  }, [active, reduceMotion, twinkle]);
+
+  // Everything drifts all the time, driven by the clock (never stalls): the star layers slide
+  // past at different speeds like flying through space, the nebulae circle slowly, the Milky
+  // Way swings gently.
+  useEffect(() => {
+    if (!active || reduceMotion) return;
+    const speeds = [5, 9, 15, 26]; // px per second, back to front (last = glowing motes)
+    let raf = 0;
+    const frame = () => {
+      const t = Date.now() / 1000;
+      for (let i = 0; i < 4; i++) {
+        layerY[i].setValue(-((t * speeds[i]) % H));
+        layerX[i].setValue(Math.sin(t / (9 + i * 3)) * (6 + i * 5));
+      }
+      nebulaRot.setValue((t / 240) % 1);
+      bandSwing.setValue(Math.sin((t / 34) * 2 * Math.PI));
+      nebulaBreath.setValue(0.5 + 0.5 * Math.sin((t / 11) * 2 * Math.PI));
+      raf = requestAnimationFrame(frame);
     };
-  }, [active, reduceMotion, twinkle, drift]);
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [active, reduceMotion, H, layerY, layerX, nebulaRot, bandSwing, nebulaBreath]);
 
   // A shooting star every 9-17 seconds, in a random place and direction.
   useEffect(() => {
@@ -175,8 +202,9 @@ export function CosmosBackground() {
     };
   }, [active, reduceMotion, W, H, shoot]);
 
-  const driftA = drift.interpolate({ inputRange: [0, 1], outputRange: [-18, 18] });
-  const driftB = drift.interpolate({ inputRange: [0, 1], outputRange: [14, -14] });
+  const nebulaTurn = nebulaRot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const bandRotate = bandSwing.interpolate({ inputRange: [-1, 1], outputRange: ['-40deg', '-12deg'] });
+  const nebulaOpacity = nebulaBreath.interpolate({ inputRange: [0, 1], outputRange: [0.75, 1] });
   const rad = (shot.angle * Math.PI) / 180;
   const sx = shoot.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(rad) * shot.dist] });
   const sy = shoot.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(rad) * shot.dist] });
@@ -184,19 +212,24 @@ export function CosmosBackground() {
 
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg, overflow: 'hidden' }]}>
-      {/* nebula clouds */}
-      <Animated.View style={[styles.abs, { left: -W * 0.35, top: -H * 0.08, transform: [{ translateX: driftA }] }]}>
-        <Glow size={W * 1.5} color={COSMOS.violet} intensity={0.3} />
-      </Animated.View>
-      <Animated.View style={[styles.abs, { left: W * 0.3, top: H * 0.22, transform: [{ translateX: driftB }] }]}>
-        <Glow size={W * 1.0} color={COSMOS.magenta} intensity={0.2} />
-      </Animated.View>
-      <Animated.View style={[styles.abs, { left: -W * 0.3, top: H * 0.6, transform: [{ translateX: driftA }] }]}>
-        <Glow size={W * 1.3} color={COSMOS.teal} intensity={0.17} />
+      {/* nebula clouds, slowly circling the middle of the screen and breathing */}
+      <Animated.View style={[styles.abs, { left: W / 2, top: H / 2, opacity: nebulaOpacity, transform: [{ rotate: nebulaTurn }] }]}>
+        <View style={[styles.abs, { left: -W * 1.1, top: -H * 0.58 }]}>
+          <Glow size={W * 1.5} color={COSMOS.violet} intensity={0.32} />
+        </View>
+        <View style={[styles.abs, { left: W * 0.0, top: -H * 0.3 }]}>
+          <Glow size={W * 1.0} color={COSMOS.magenta} intensity={0.24} />
+        </View>
+        <View style={[styles.abs, { left: -W * 0.9, top: H * 0.08 }]}>
+          <Glow size={W * 1.3} color={COSMOS.teal} intensity={0.2} />
+        </View>
+        <View style={[styles.abs, { left: W * 0.1, top: H * 0.22 }]}>
+          <Glow size={W * 0.9} color={COSMOS.blue} intensity={0.2} />
+        </View>
       </Animated.View>
 
       {/* Milky Way band with a dense dust of stars */}
-      <View style={[styles.abs, { left: W / 2, top: H * 0.42, transform: [{ rotate: '-26deg' }] }]}>
+      <Animated.View style={[styles.abs, { left: W / 2, top: H * 0.42, transform: [{ rotate: bandRotate }] }]}>
         <View style={[styles.abs, { left: -W * 1.0, top: -H * 0.18 }]}>
           <Glow size={W * 2} squash={(H * 0.36) / (W * 2)} color={[170, 150, 255]} intensity={0.2} />
         </View>
@@ -218,31 +251,56 @@ export function CosmosBackground() {
             }}
           />
         ))}
-      </View>
+      </Animated.View>
 
-      {/* stars, three layers that twinkle out of phase */}
+      {/* stars: three layers that twinkle and slide past at different speeds, plus drifting motes */}
       {[0, 1, 2].map((layer) => (
-        <Animated.View key={layer} style={[StyleSheet.absoluteFill, { opacity: twinkle[layer] }]}>
-          {stars
-            .filter((s) => s.layer === layer)
-            .map((s, i) => (
-              <View
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: s.x,
-                  top: s.y,
-                  width: s.size,
-                  height: s.size,
-                  borderRadius: s.size / 2,
-                  backgroundColor: s.tint,
-                  opacity: s.alpha,
-                  boxShadow: s.bright ? `0 0 ${s.size * 3}px rgba(255,255,255,0.7)` : undefined,
-                }}
-              />
-            ))}
+        <Animated.View
+          key={layer}
+          style={[StyleSheet.absoluteFill, { opacity: twinkle[layer], transform: [{ translateY: layerY[layer] }, { translateX: layerX[layer] }] }]}
+        >
+          {[0, H].flatMap((off) =>
+            stars
+              .filter((s) => s.layer === layer)
+              .map((s, i) => (
+                <View
+                  key={`${off}-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: s.x,
+                    top: s.y + off,
+                    width: s.size,
+                    height: s.size,
+                    borderRadius: s.size / 2,
+                    backgroundColor: s.tint,
+                    opacity: s.alpha,
+                    boxShadow: s.bright ? `0 0 ${s.size * 3}px rgba(255,255,255,0.7)` : undefined,
+                  }}
+                />
+              )),
+          )}
         </Animated.View>
       ))}
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateY: layerY[3] }, { translateX: layerX[3] }] }]}>
+        {[0, H].flatMap((off) =>
+          motes.map((m, i) => (
+            <View
+              key={`${off}-${i}`}
+              style={{
+                position: 'absolute',
+                left: m.x,
+                top: m.y + off,
+                width: m.size,
+                height: m.size,
+                borderRadius: m.size,
+                backgroundColor: m.color,
+                boxShadow: `0 0 ${m.size * 4}px ${m.size}px ${m.color}`,
+                opacity: 0.5,
+              }}
+            />
+          )),
+        )}
+      </Animated.View>
 
       {/* bright sparkles */}
       {!reduceMotion && sparkles.map((s, i) => <Sparkle key={i} {...s} active={active} />)}
