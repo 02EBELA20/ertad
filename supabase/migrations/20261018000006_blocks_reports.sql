@@ -48,18 +48,14 @@ revoke execute on function public.is_blocked_between(uuid, uuid), public.can_sen
 grant execute on function public.is_blocked_between(uuid, uuid), public.can_send_message(uuid) to authenticated;
 
 -- Writing is impossible while a block exists in either direction.
-drop policy messages_insert_own on public.messages;
-create policy messages_insert_own on public.messages
-  for insert to authenticated
+alter policy messages_insert_own on public.messages
   with check (
     sender_id = (select auth.uid())
     and public.can_send_message(conversation_id)
   );
 
 -- Blocked people disappear from each other's catalog.
-drop policy providers_select on public.providers;
-create policy providers_select on public.providers
-  for select to authenticated
+alter policy providers_select on public.providers
   using (
     (visible or user_id = (select auth.uid()))
     and not public.is_blocked_between((select auth.uid()), user_id)
@@ -86,8 +82,7 @@ begin
 end; $$;
 
 -- Conversation list: hides chats where the other side blocked me; flags chats I blocked.
-drop function public.my_conversations();
-create function public.my_conversations()
+create function public.my_chats()
 returns table (
   id uuid, other_id uuid, other_name text, other_photo text,
   last_body text, last_at timestamptz, unread integer, i_blocked boolean
@@ -111,8 +106,7 @@ returns table (
   order by c.last_message_at desc;
 $$;
 
-drop function public.conversation_peer(uuid);
-create function public.conversation_peer(conv uuid)
+create function public.chat_peer(conv uuid)
 returns table (other_id uuid, other_name text, other_photo text, i_blocked boolean)
 language sql stable security definer set search_path = '' as $$
   select o.id, coalesce(p.display_name, o.display_name), p.photo_path,
@@ -124,8 +118,9 @@ language sql stable security definer set search_path = '' as $$
     and not exists (select 1 from public.blocks b where b.blocker_id = o.id and b.blocked_id = auth.uid());
 $$;
 
-revoke execute on function public.my_conversations(), public.conversation_peer(uuid) from public, anon;
-grant execute on function public.my_conversations(), public.conversation_peer(uuid) to authenticated;
+revoke execute on function public.my_chats(), public.chat_peer(uuid) from public, anon;
+grant execute on function public.my_chats(), public.chat_peer(uuid) to authenticated;
+-- Old my_conversations()/conversation_peer() stay for now (superseded); drop them in a later cleanup.
 
 -- Reports: the reporter can file and see their own; reading all is done by the owner in the dashboard.
 create table public.reports (

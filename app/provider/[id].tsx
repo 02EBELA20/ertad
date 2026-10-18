@@ -10,6 +10,7 @@ import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { fetchProvider, ProviderDetail } from '@/lib/provider';
 import { startConversation } from '@/lib/chat';
+import { UserActionsSheet } from '@/components/UserActionsSheet';
 import { useAuth } from '@/auth/AuthProvider';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
@@ -47,6 +48,7 @@ export default function ProviderScreen() {
   const { session } = useAuth();
   const [opening, setOpening] = useState(false);
   const [chatError, setChatError] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
 
@@ -107,7 +109,31 @@ export default function ProviderScreen() {
         <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={ka.categories.back}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
+        {provider && !isMe ? (
+          <Pressable
+            onPress={() => setMenuOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={ka.safety.report}
+          >
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+          </Pressable>
+        ) : null}
       </View>
+
+      {provider && !isMe && session ? (
+        <UserActionsSheet
+          visible={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          me={session.user.id}
+          otherId={provider.user_id}
+          otherName={provider.display_name}
+          isBlocked={false}
+          onBlockChange={(b) => {
+            if (b) goBack();
+          }}
+        />
+      ) : null}
 
       {state === 'loading' ? (
         <View style={styles.center}>
@@ -185,7 +211,13 @@ export default function ProviderScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: 20, paddingVertical: 14 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20 },
   content: { padding: 20, paddingTop: 0, gap: 24 },
   hero: { alignItems: 'center', gap: 8 },

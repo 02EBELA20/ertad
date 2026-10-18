@@ -115,7 +115,7 @@ export default function ChatListScreen() {
                     numberOfLines={1}
                     style={[styles.preview, item.unread > 0 && { color: colors.text }]}
                   >
-                    {item.last_body ?? ''}
+                    {item.i_blocked ? ka.safety.blockedBanner : (item.last_body ?? '')}
                   </AppText>
                   {item.unread > 0 ? (
                     <View style={styles.badge}>

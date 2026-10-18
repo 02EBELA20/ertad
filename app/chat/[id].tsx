@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
+import { UserActionsSheet } from '@/components/UserActionsSheet';
 import { Avatar } from '@/components/Avatar';
 import { useAuth } from '@/auth/AuthProvider';
 import {
@@ -45,6 +46,7 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -130,7 +132,30 @@ export default function ChatScreen() {
             </AppText>
           </Pressable>
         ) : null}
+        {peer ? (
+          <Pressable
+            onPress={() => setMenuOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={ka.safety.report}
+          >
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+          </Pressable>
+        ) : null}
       </View>
+
+      {peer ? (
+        <UserActionsSheet
+          visible={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          me={me}
+          otherId={peer.other_id}
+          otherName={peer.other_name}
+          conversationId={id}
+          isBlocked={peer.i_blocked}
+          onBlockChange={(b) => setPeer({ ...peer, i_blocked: b })}
+        />
+      ) : null}
 
       {state === 'loading' ? (
         <View style={styles.center}>
@@ -178,6 +203,16 @@ export default function ChatScreen() {
             <AppText style={styles.error}>{sendError}</AppText>
           ) : null}
 
+          {peer?.i_blocked ? (
+            <View style={styles.blockedBar}>
+              <AppText muted>{ka.safety.blockedBanner}</AppText>
+              <Pressable onPress={() => setMenuOpen(true)} accessibilityRole="button">
+                <AppText weight="medium" style={styles.unblockLink}>
+                  {ka.safety.unblock}
+                </AppText>
+              </Pressable>
+            </View>
+          ) : (
           <View style={styles.composer}>
             <TextInput
               value={text}
@@ -205,6 +240,7 @@ export default function ChatScreen() {
               <Ionicons name="arrow-up" size={22} color={colors.onAccent} />
             </Pressable>
           </View>
+          )}
         </KeyboardAvoidingView>
       )}
     </SafeAreaView>
@@ -244,6 +280,15 @@ const styles = StyleSheet.create({
   meta: { fontSize: 11, lineHeight: 16, marginTop: 2, alignSelf: 'flex-end' },
   metaMine: { color: colors.onAccent, opacity: 0.7 },
   error: { color: colors.danger, paddingHorizontal: 16, paddingBottom: 6, fontSize: 14, lineHeight: 20 },
+  blockedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  unblockLink: { color: colors.accent, textDecorationLine: 'underline' },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

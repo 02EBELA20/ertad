@@ -8,6 +8,7 @@ export type ConversationItem = {
   last_body: string | null;
   last_at: string | null;
   unread: number;
+  i_blocked: boolean;
 };
 
 export type Message = {
@@ -19,7 +20,12 @@ export type Message = {
   read_at: string | null;
 };
 
-export type Peer = { other_id: string; other_name: string | null; other_photo: string | null };
+export type Peer = {
+  other_id: string;
+  other_name: string | null;
+  other_photo: string | null;
+  i_blocked: boolean;
+};
 
 export const MAX_MESSAGE = 1000;
 
@@ -30,13 +36,13 @@ export async function startConversation(otherUserId: string): Promise<string> {
 }
 
 export async function fetchConversations(): Promise<ConversationItem[]> {
-  const { data, error } = await supabase.rpc('my_conversations');
+  const { data, error } = await supabase.rpc('my_chats');
   if (error) throw error;
   return (data ?? []) as ConversationItem[];
 }
 
 export async function fetchPeer(conversationId: string): Promise<Peer | null> {
-  const { data, error } = await supabase.rpc('conversation_peer', { conv: conversationId });
+  const { data, error } = await supabase.rpc('chat_peer', { conv: conversationId });
   if (error) throw error;
   return ((data ?? [])[0] as Peer | undefined) ?? null;
 }
@@ -65,4 +71,34 @@ export async function sendMessage(conversationId: string, senderId: string, body
 
 export async function markRead(conversationId: string): Promise<void> {
   await supabase.rpc('mark_conversation_read', { conv: conversationId });
+}
+
+export async function blockUser(me: string, other: string): Promise<void> {
+  const { error } = await supabase.from('blocks').insert({ blocker_id: me, blocked_id: other });
+  // already blocked (duplicate key) is fine
+  if (error && error.code !== '23505') throw error;
+}
+
+export async function unblockUser(me: string, other: string): Promise<void> {
+  const { error } = await supabase.from('blocks').delete().eq('blocker_id', me).eq('blocked_id', other);
+  if (error) throw error;
+}
+
+export type ReportReason = 'spam' | 'abuse' | 'scam' | 'fake' | 'other';
+
+export async function reportUser(input: {
+  reporterId: string;
+  targetUserId: string;
+  conversationId?: string | null;
+  reason: ReportReason;
+  details?: string;
+}): Promise<void> {
+  const { error } = await supabase.from('reports').insert({
+    reporter_id: input.reporterId,
+    target_user_id: input.targetUserId,
+    conversation_id: input.conversationId ?? null,
+    reason: input.reason,
+    details: input.details?.trim() ? input.details.trim().slice(0, 500) : null,
+  });
+  if (error) throw error;
 }
