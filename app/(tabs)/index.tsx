@@ -20,7 +20,6 @@ export default function HomeScreen() {
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<unknown[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [focused, setFocused] = useState(false);
 
@@ -57,7 +56,6 @@ export default function HomeScreen() {
       setFailed(true);
       return;
     }
-    if (__DEV__ && data.debug) setDebugInfo(JSON.stringify(data.debug).slice(0, 400));
     // Go straight to the main category of the best match; the user picks a subcategory there.
     const first = (data.ids as string[])[0];
     const parentId = first ? parentOf(first) : null;
@@ -144,18 +142,27 @@ export default function HomeScreen() {
           </View>
 
           {(results && results.length === 0) || failed ? (
-            <View style={styles.block}>
-              <AppText muted>{failed ? ka.home.failed : ka.home.noMatch}</AppText>
-              {__DEV__ && debugInfo ? (
-                <AppText muted style={styles.small}>
-                  {debugInfo}
-                </AppText>
-              ) : null}
-              <Pressable onPress={() => open(null)} style={styles.link} accessibilityRole="button">
-                <AppText weight="medium" style={styles.linkText}>
-                  {ka.home.browseAll}
-                </AppText>
-              </Pressable>
+            <View style={styles.miss}>
+              <View style={styles.missHead}>
+                <Ionicons name="compass-outline" size={22} color={colors.accent} />
+                <AppText style={styles.missText}>{failed ? ka.home.failed : ka.home.noMatch}</AppText>
+              </View>
+              <View style={styles.missButtons}>
+                <Pressable onPress={() => open(null)} style={[styles.missBtn, styles.missBtnPrimary]} accessibilityRole="button">
+                  <AppText weight="bold" style={styles.missBtnPrimaryText}>
+                    {ka.home.browseAll}
+                  </AppText>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push({ pathname: '/post/new', params: { idea: text.trim() } })}
+                  style={[styles.missBtn, styles.missBtnGhost]}
+                  accessibilityRole="button"
+                >
+                  <AppText weight="bold" style={styles.missBtnGhostText}>
+                    {ka.home.writePost}
+                  </AppText>
+                </Pressable>
+              </View>
             </View>
           ) : null}
 
@@ -247,8 +254,22 @@ const styles = StyleSheet.create({
   bigBtnGhost: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: 'rgba(19,28,46,0.6)' },
   bigBtnPrimaryText: { color: colors.onAccent, fontSize: 15, lineHeight: 22 },
   bigBtnGhostText: { color: colors.accent, fontSize: 15, lineHeight: 22 },
-  block: { gap: 10 },
-  small: { fontSize: 13, lineHeight: 18 },
+  miss: {
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(14,22,40,0.7)',
+  },
+  missHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  missText: { flex: 1, fontSize: 14, lineHeight: 21, color: 'rgba(240,215,160,0.92)' },
+  missButtons: { flexDirection: 'row', gap: 10 },
+  missBtn: { flex: 1, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  missBtnPrimary: { backgroundColor: colors.accent },
+  missBtnGhost: { borderWidth: 1.5, borderColor: colors.accent },
+  missBtnPrimaryText: { color: colors.onAccent, fontSize: 14, lineHeight: 20 },
+  missBtnGhostText: { color: colors.accent, fontSize: 14, lineHeight: 20 },
   result: {
     flexDirection: 'row',
     alignItems: 'center',

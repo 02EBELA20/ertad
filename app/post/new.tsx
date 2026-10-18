@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
@@ -21,7 +21,8 @@ export default function NewPostScreen() {
   const { groups } = useCategories();
   const userId = session?.user.id ?? '';
 
-  const [idea, setIdea] = useState('');
+  const params = useLocalSearchParams<{ idea?: string }>();
+  const [idea, setIdea] = useState(typeof params.idea === 'string' ? params.idea : '');
   const [drafting, setDrafting] = useState(false);
   const [aiDone, setAiDone] = useState(false);
 
