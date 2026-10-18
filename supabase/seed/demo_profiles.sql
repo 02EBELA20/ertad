@@ -39,3 +39,11 @@ begin
   join public.providers p on p.display_name = t.name and p.is_demo
   join public.categories c on c.slug = t.slug;
 end $$;
+
+-- Illustrated avatars bundled in the app (see src/lib/demoAvatars.ts)
+update public.providers set photo_path = 'demo/' || case display_name
+  when 'ნინო მ.' then 'nino' when 'გიგა ბ.' then 'giga' when 'თამარ კ.' then 'tamar'
+  when 'ლაშა დ.' then 'lasha' when 'მარიამ წ.' then 'mariam' when 'ზურა ს.' then 'zura'
+  when 'ეკა ჯ.' then 'eka' when 'სოფო ა.' then 'sopo' when 'ნიკა ტ.' then 'nika'
+  when 'დათო რ.' then 'dato' end
+where is_demo and photo_path is null;
