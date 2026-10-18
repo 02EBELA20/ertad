@@ -19,8 +19,8 @@ const PERIOD = 40000; // one full turn of the ring
 const HOLD_MS = 1700; // how long a member glows at the front before flying to the middle
 const STEPS = 48;
 const TILT = -7; // degrees: a slight tilt makes the ring feel like a real 3D plane
-const RY = 0.5; // ring flattening (3D look)
-const OY = 30; // the ring sits a bit lower than the middle so it passes under the spotlight text
+const RY = 0.62; // ring flattening (3D look); tall enough that the ring clears the spotlight avatar
+const OY = 0;
 
 /**
  * A 3D ring of people turning around a spotlight. The member who comes to the front glows,
@@ -40,7 +40,7 @@ export function OrbitFeed({
   const { width } = useWindowDimensions();
   const S = Math.min(width - 32, 400);
   const RX = S / 2 - AVATAR / 2 - 4;
-  const H = S * 0.84;
+  const H = S * 0.8;
   const n = Math.min(MAX_SLOTS, Math.max(0, items.length - 1));
 
   const [active, setActive] = useState(true);
@@ -65,6 +65,7 @@ export function OrbitFeed({
   const breathe = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   const ghostV = useRef(new Animated.Value(0)).current;
+  const textFade = useRef(new Animated.Value(1)).current;
   const boost = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
   const scales = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
 
@@ -141,7 +142,7 @@ export function OrbitFeed({
     const flying = slotsRef.current[k];
     const old = centerRef.current;
 
-    setOrigin({ x: p.x, y: p.y + 30, s: Math.max(0.3, (p.s * AVATAR) / SPOT) });
+    setOrigin({ x: p.x, y: p.y, s: Math.max(0.3, (p.s * AVATAR) / SPOT) });
     if (old) {
       queueRef.current.push(old);
       setGhost(old);
@@ -152,6 +153,8 @@ export function OrbitFeed({
     setCenter(flying);
     pop.setValue(0);
     Animated.spring(pop, { toValue: 1, friction: 7, tension: 45, useNativeDriver: false }).start();
+    textFade.setValue(0);
+    Animated.timing(textFade, { toValue: 1, duration: 600, delay: 350, useNativeDriver: false }).start();
 
     // the place it left is taken by a new member after a moment
     scales[k].setValue(0);
@@ -257,7 +260,7 @@ export function OrbitFeed({
               },
             ]}
           >
-            <Spotlight item={ghost} groups={groups} />
+            <SpotAvatar item={ghost} groups={groups} />
           </Animated.View>
         ) : null}
 
@@ -277,7 +280,7 @@ export function OrbitFeed({
           ]}
         >
           <Pressable onPress={() => onOpen(center)} accessibilityRole="button" accessibilityLabel={center.title ?? ''}>
-            <Spotlight item={center} groups={groups} />
+            <SpotAvatar item={center} groups={groups} />
           </Pressable>
         </Animated.View>
 
@@ -331,36 +334,39 @@ export function OrbitFeed({
           );
         })}
       </View>
+
+      {/* who is in the spotlight: below the ring, so nothing ever covers it */}
+      <Pressable onPress={() => onOpen(center)} style={styles.textBlock} accessibilityRole="button">
+        <Animated.View style={{ opacity: textFade, alignItems: 'center', gap: 2 }}>
+          <AppText weight="bold" numberOfLines={1} style={styles.spotName}>
+            {center.title || '—'}
+          </AppText>
+          <AppText weight="medium" numberOfLines={2} style={styles.spotKind}>
+            {center.kind === 'offer' ? ka.feed.offers : ka.feed.seeks}:{' '}
+            {(center.category_id ? describeCategory(groups, center.category_id).label : '') || ''}
+          </AppText>
+          <View style={styles.spotCity}>
+            <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+            <AppText muted numberOfLines={1} style={styles.spotCityText}>
+              {center.city}
+              {center.is_demo ? ` · ${ka.feed.demo}` : ''}
+            </AppText>
+          </View>
+        </Animated.View>
+      </Pressable>
     </View>
   );
 }
 
-/** The big introduction in the middle: photo, name, what they offer or look for, city. */
-function Spotlight({ item, groups }: { item: FeedItem; groups: CategoryGroup[] }) {
+/** The big avatar in the middle of the ring. */
+function SpotAvatar({ item, groups }: { item: FeedItem; groups: CategoryGroup[] }) {
   const cat = item.category_id ? describeCategory(groups, item.category_id) : { label: '', slug: '' };
   const offer = item.kind === 'offer';
   return (
-    <View style={styles.spot}>
-      <View style={[styles.spotAvatar, { borderColor: offer ? 'rgba(217,164,65,0.95)' : 'rgba(170,200,255,0.95)' }]}>
-        <Avatar path={item.photo} size={SPOT - 8} />
-        <View style={[styles.spotBadge, !offer && styles.badgeSeek]}>
-          <MaterialCommunityIcons name={categoryIcon(cat.slug)} size={16} color={offer ? colors.onAccent : colors.text} />
-        </View>
-      </View>
-      <View style={styles.spotText}>
-        <AppText weight="bold" numberOfLines={1} style={styles.spotName}>
-          {item.title || '—'}
-        </AppText>
-        <AppText weight="medium" numberOfLines={1} style={styles.spotKind}>
-          {item.kind === 'offer' ? ka.feed.offers : ka.feed.seeks}: {cat.label}
-        </AppText>
-        <View style={styles.spotCity}>
-          <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-          <AppText muted numberOfLines={1} style={styles.spotCityText}>
-            {item.city}
-            {item.is_demo ? ` · ${ka.feed.demo}` : ''}
-          </AppText>
-        </View>
+    <View style={[styles.spotAvatar, { borderColor: offer ? 'rgba(217,164,65,0.95)' : 'rgba(170,200,255,0.95)' }]}>
+      <Avatar path={item.photo} size={SPOT - 8} />
+      <View style={[styles.spotBadge, !offer && styles.badgeSeek]}>
+        <MaterialCommunityIcons name={categoryIcon(cat.slug)} size={16} color={offer ? colors.onAccent : colors.text} />
       </View>
     </View>
   );
@@ -393,7 +399,6 @@ const styles = StyleSheet.create({
     borderColor: colors.bg,
   },
   badgeSeek: { backgroundColor: colors.surface },
-  spot: { alignItems: 'center', gap: 8, maxWidth: 250 },
   spotAvatar: {
     width: SPOT,
     height: SPOT,
@@ -417,16 +422,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.bg,
   },
-  spotText: {
-    alignItems: 'center',
-    gap: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: 'rgba(8,13,26,0.6)',
-  },
-  spotName: { fontSize: 16, lineHeight: 22, color: colors.accent, textAlign: 'center' },
-  spotKind: { fontSize: 12, lineHeight: 17, color: 'rgba(240,215,160,0.92)', textAlign: 'center' },
+  textBlock: { alignSelf: 'stretch', alignItems: 'center', minHeight: 74, paddingHorizontal: 8 },
+  spotName: { fontSize: 18, lineHeight: 25, color: colors.accent, textAlign: 'center' },
+  spotKind: { fontSize: 13, lineHeight: 18, color: 'rgba(240,215,160,0.92)', textAlign: 'center' },
   spotCity: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  spotCityText: { fontSize: 11, lineHeight: 15 },
+  spotCityText: { fontSize: 12, lineHeight: 16 },
 });
