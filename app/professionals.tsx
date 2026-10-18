@@ -11,6 +11,7 @@ import { SubcategoryChips } from '@/components/SubcategoryChips';
 import { ProviderCard } from '@/components/ProviderCard';
 import { useCategories } from '@/lib/categories';
 import { fetchProviders, ProviderListItem } from '@/lib/provider';
+import { ReviewSummary, fetchSummaries } from '@/lib/reviews';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -23,6 +24,7 @@ export default function ProfessionalsScreen() {
   const [category, setCategory] = useState<string | null>(params.category ?? null);
   const [items, setItems] = useState<ProviderListItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [ratings, setRatings] = useState<Map<string, ReviewSummary>>(new Map());
 
   useEffect(() => {
     if (params.category) setCategory(params.category);
@@ -48,7 +50,11 @@ export default function ProfessionalsScreen() {
     setItems(null);
     setFailed(false);
     try {
-      setItems(await fetchProviders(filterIds));
+      const list = await fetchProviders(filterIds);
+      setItems(list);
+      fetchSummaries(list.map((p) => p.user_id))
+        .then(setRatings)
+        .catch(() => {});
     } catch {
       setFailed(true);
     }
@@ -116,6 +122,7 @@ export default function ProfessionalsScreen() {
                 bio={p.bio}
                 mine={p.user_id === session?.user.id}
                 mineLabel={ka.professionals.yours}
+                rating={ratings.get(p.user_id) ?? null}
                 onPress={() => router.push({ pathname: '/provider/[id]', params: { id: p.user_id } })}
               />
             ))}

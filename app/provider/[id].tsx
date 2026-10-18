@@ -10,6 +10,8 @@ import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { fetchProvider, ProviderDetail } from '@/lib/provider';
 import { startConversation } from '@/lib/chat';
+import { Stars } from '@/components/Stars';
+import { ReviewItem, ReviewSummary, fetchReviewSummary, fetchReviews } from '@/lib/reviews';
 import { UserActionsSheet } from '@/components/UserActionsSheet';
 import { useAuth } from '@/auth/AuthProvider';
 import { colors } from '@/theme/colors';
@@ -49,6 +51,8 @@ export default function ProviderScreen() {
   const [opening, setOpening] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
 
@@ -64,6 +68,20 @@ export default function ProviderScreen() {
         if (alive) setState('missing');
       }
     })();
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    fetchReviewSummary(id)
+      .then((r) => alive && setSummary(r))
+      .catch(() => {});
+    fetchReviews(id)
+      .then((r) => alive && setReviews(r))
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -156,6 +174,14 @@ export default function ProviderScreen() {
               <Ionicons name="location-outline" size={16} color={colors.textMuted} />
               <AppText muted>{provider.city}</AppText>
             </View>
+            {summary ? (
+              <View style={styles.locRow}>
+                <Stars value={summary.avg} size={16} />
+                <AppText muted>
+                  {summary.avg.toFixed(1)} · {ka.review.count(summary.cnt)}
+                </AppText>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.actions}>
@@ -194,6 +220,25 @@ export default function ProviderScreen() {
               <AppText>{provider.price_note}</AppText>
             </View>
           ) : null}
+
+          <View style={styles.section}>
+            <AppText weight="bold">{ka.review.section}</AppText>
+            {reviews.length === 0 ? (
+              <AppText muted>{ka.review.none}</AppText>
+            ) : (
+              reviews.map((r, i) => (
+                <View key={i} style={styles.review}>
+                  <View style={styles.reviewTop}>
+                    <AppText weight="medium" style={styles.reviewName}>
+                      {r.reviewer_name || '—'}
+                    </AppText>
+                    <Stars value={r.rating} size={13} />
+                  </View>
+                  {r.comment ? <AppText style={styles.reviewText}>{r.comment}</AppText> : null}
+                </View>
+              ))
+            )}
+          </View>
 
           {provider.license_number ? (
             <View style={styles.section}>
@@ -250,6 +295,17 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13, lineHeight: 20 },
   section: { gap: 6 },
+  review: {
+    gap: 4,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  reviewTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  reviewName: { flex: 1, fontSize: 14, lineHeight: 20 },
+  reviewText: { fontSize: 14, lineHeight: 22 },
   chatError: { color: colors.danger, textAlign: 'center' },
   small: { fontSize: 13, lineHeight: 18 },
 });

@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
 import { UserActionsSheet } from '@/components/UserActionsSheet';
+import { ReviewSheet } from '@/components/ReviewSheet';
+import { ReviewState, fetchReviewState } from '@/lib/reviews';
 import { Avatar } from '@/components/Avatar';
 import { useAuth } from '@/auth/AuthProvider';
 import {
@@ -47,6 +49,8 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewState, setReviewState] = useState<ReviewState | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -91,6 +95,17 @@ export default function ChatScreen() {
       supabase.removeChannel(channel);
     };
   }, [id, me]);
+
+  useEffect(() => {
+    if (!id || state !== 'ready') return;
+    let alive = true;
+    fetchReviewState(id)
+      .then((r) => alive && setReviewState(r))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [id, state, messages.length]);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -160,6 +175,25 @@ export default function ChatScreen() {
           conversationId={id}
           isBlocked={peer.i_blocked}
           onBlockChange={(b) => setPeer({ ...peer, i_blocked: b })}
+        />
+      ) : null}
+
+      {reviewState?.eligible && !reviewState.reviewed && peer && !peer.i_blocked ? (
+        <Pressable onPress={() => setReviewOpen(true)} style={styles.reviewPill} accessibilityRole="button">
+          <Ionicons name="star" size={16} color={colors.accent} />
+          <AppText weight="medium" style={styles.reviewPillText}>
+            {ka.review.prompt}
+          </AppText>
+        </Pressable>
+      ) : null}
+
+      {peer && id ? (
+        <ReviewSheet
+          visible={reviewOpen}
+          onClose={() => setReviewOpen(false)}
+          conversationId={id}
+          otherName={peer.other_name}
+          onDone={() => setReviewState((r) => (r ? { ...r, reviewed: true } : r))}
         />
       ) : null}
 
@@ -267,6 +301,17 @@ const styles = StyleSheet.create({
   },
   peer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   peerName: { flex: 1, fontSize: 18, lineHeight: 26 },
+  reviewPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  reviewPillText: { color: colors.accent, fontSize: 14, lineHeight: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20 },
   messages: { padding: 16, gap: 8 },
   emptyWrap: { paddingVertical: 40, alignItems: 'center', transform: [{ scaleY: -1 }] },

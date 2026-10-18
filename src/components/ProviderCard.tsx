@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { Avatar } from '@/components/Avatar';
+import { Stars } from '@/components/Stars';
 import { colors } from '@/theme/colors';
 
 type Props = {
@@ -13,10 +14,11 @@ type Props = {
   bio: string;
   mine?: boolean;
   mineLabel?: string;
+  rating?: { avg: number; cnt: number } | null;
   onPress: () => void;
 };
 
-export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, onPress }: Props) {
+export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, rating, onPress }: Props) {
   return (
     <Pressable onPress={onPress} style={styles.card} accessibilityRole="button">
       <View style={styles.top}>
@@ -29,6 +31,14 @@ export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mi
           <AppText muted numberOfLines={1} style={styles.small}>
             {labels.join(', ')}
           </AppText>
+          {rating ? (
+            <View style={styles.meta}>
+              <Stars value={rating.avg} size={13} />
+              <AppText muted style={styles.small}>
+                {rating.avg.toFixed(1)} ({rating.cnt})
+              </AppText>
+            </View>
+          ) : null}
           <View style={styles.meta}>
             <Ionicons name="location-outline" size={14} color={colors.textMuted} />
             <AppText muted numberOfLines={1} style={styles.small}>
