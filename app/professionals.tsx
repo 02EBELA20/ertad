@@ -34,6 +34,12 @@ export default function ProfessionalsScreen() {
     return g ? [g.parent.id, ...g.children.map((c) => c.id)] : [category];
   }, [category, groups]);
 
+  // The main category currently in focus (for the subcategory chips).
+  const activeGroup = useMemo(
+    () => groups.find((g) => g.parent.id === category || g.children.some((c) => c.id === category)) ?? null,
+    [category, groups],
+  );
+
   const names = useMemo(() => {
     const m = new Map<string, string>();
     for (const g of groups) {
@@ -77,6 +83,28 @@ export default function ProfessionalsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <CategoryPicker value={category} onChange={setCategory} allowAll />
+
+        {activeGroup && activeGroup.children.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            {[{ id: activeGroup.parent.id, name_ka: ka.professionals.allInCategory }, ...activeGroup.children].map(
+              (c) => {
+                const on = category === c.id;
+                return (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => setCategory(c.id)}
+                    style={[styles.chip, on && styles.chipOn]}
+                    accessibilityRole="button"
+                  >
+                    <AppText weight="medium" style={[styles.chipText, on && { color: colors.onAccent }]}>
+                      {c.name_ka}
+                    </AppText>
+                  </Pressable>
+                );
+              },
+            )}
+          </ScrollView>
+        ) : null}
 
         {failed ? (
           <View style={styles.center}>
@@ -129,6 +157,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, lineHeight: 34 },
   content: { padding: 20, paddingTop: 4, gap: 20 },
   list: { gap: 12 },
+  chips: { gap: 8, paddingRight: 20 },
+  chip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipText: { fontSize: 14, lineHeight: 20 },
   center: { alignItems: 'center', gap: 12, paddingTop: 32 },
   emptyIcon: {
     width: 72,

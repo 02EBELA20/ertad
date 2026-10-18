@@ -5,27 +5,22 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { useCategories } from '@/lib/categories';
-import { categoryIcon } from '@/lib/categoryIcons';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
-
-type Suggestion = { id: string; slug: string; label: string };
 
 export default function HomeScreen() {
   const router = useRouter();
   const { groups } = useCategories();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [results, setResults] = useState<Suggestion[] | null>(null);
+  const [results, setResults] = useState<unknown[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
-  function describe(id: string): Suggestion | null {
+  function parentOf(id: string): string | null {
     for (const g of groups) {
-      if (g.parent.id === id) return { id, slug: g.parent.slug, label: g.parent.name_ka };
-      const child = g.children.find((c) => c.id === id);
-      if (child) return { id, slug: g.parent.slug, label: `${g.parent.name_ka} · ${child.name_ka}` };
+      if (g.parent.id === id || g.children.some((c) => c.id === id)) return g.parent.id;
     }
     return null;
   }
@@ -44,8 +39,15 @@ export default function HomeScreen() {
       return;
     }
     if (__DEV__ && data.debug) setDebugInfo(JSON.stringify(data.debug).slice(0, 400));
-    const found = (data.ids as string[]).map(describe).filter((s): s is Suggestion => s !== null);
-    setResults(found);
+    // Go straight to the main category of the best match; the user picks a subcategory there.
+    const first = (data.ids as string[])[0];
+    const parentId = first ? parentOf(first) : null;
+    if (parentId) {
+      setText('');
+      router.push({ pathname: '/professionals', params: { category: parentId } });
+      return;
+    }
+    setResults([]);
   }
 
   function open(categoryId: string | null) {
@@ -101,25 +103,6 @@ export default function HomeScreen() {
               )}
             </Pressable>
           </View>
-
-          {results && results.length > 0 ? (
-            <View style={styles.block}>
-              <AppText muted style={styles.small}>
-                {ka.home.suggested}
-              </AppText>
-              {results.map((s) => (
-                <Pressable key={s.id} onPress={() => open(s.id)} style={styles.result} accessibilityRole="button">
-                  <View style={styles.resultIcon}>
-                    <MaterialCommunityIcons name={categoryIcon(s.slug)} size={22} color={colors.accent} />
-                  </View>
-                  <AppText weight="medium" style={styles.flex}>
-                    {s.label}
-                  </AppText>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
 
           {(results && results.length === 0) || failed ? (
             <View style={styles.block}>
