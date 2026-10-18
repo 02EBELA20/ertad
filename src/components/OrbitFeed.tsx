@@ -320,7 +320,7 @@ export function OrbitFeed({
             <AppText weight="bold" numberOfLines={1} style={styles.capName}>
               {featured.title || '—'}
             </AppText>
-            <AppText numberOfLines={1} style={styles.capKind}>
+            <AppText numberOfLines={2} style={styles.capKind}>
               {featured.kind === 'offer' ? ka.feed.offers : ka.feed.seeks}: {fCat.label} · {featured.city}
             </AppText>
           </Animated.View>
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bg,
   },
   badgeSeek: { backgroundColor: colors.surface },
-  caption: { alignSelf: 'stretch', alignItems: 'center', marginTop: 14, minHeight: 50, paddingHorizontal: 12 },
+  caption: { alignSelf: 'center', alignItems: 'center', marginTop: 28, minHeight: 64, maxWidth: 270, paddingHorizontal: 6 },
   capName: { fontSize: 18, lineHeight: 25, textAlign: 'center', color: colors.accent },
   capKind: { fontSize: 13, lineHeight: 19, textAlign: 'center', color: 'rgba(240,215,160,0.8)' },
 });
