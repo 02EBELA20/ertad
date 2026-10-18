@@ -4,6 +4,7 @@ import { AppText } from '@/components/AppText';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { colors } from '@/theme/colors';
+import { ka } from '@/i18n/ka';
 
 type Props = {
   name: string;
@@ -15,10 +16,11 @@ type Props = {
   mine?: boolean;
   mineLabel?: string;
   rating?: { avg: number; cnt: number } | null;
+  demo?: boolean;
   onPress: () => void;
 };
 
-export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, rating, onPress }: Props) {
+export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, rating, demo, onPress }: Props) {
   return (
     <Pressable onPress={onPress} style={styles.card} accessibilityRole="button">
       <View style={styles.top}>
@@ -27,6 +29,7 @@ export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mi
           <AppText weight="bold" numberOfLines={1} style={styles.name}>
             {name}
             {mine && mineLabel ? `  ·  ${mineLabel}` : ''}
+            {demo ? `  ·  ${ka.feed.demo}` : ''}
           </AppText>
           <AppText muted numberOfLines={1} style={styles.small}>
             {labels.join(', ')}

@@ -123,6 +123,7 @@ export default function ProfessionalsScreen() {
                 mine={p.user_id === session?.user.id}
                 mineLabel={ka.professionals.yours}
                 rating={ratings.get(p.user_id) ?? null}
+                demo={p.is_demo}
                 onPress={() => router.push({ pathname: '/provider/[id]', params: { id: p.user_id } })}
               />
             ))}

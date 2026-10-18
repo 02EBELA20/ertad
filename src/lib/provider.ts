@@ -136,6 +136,7 @@ export type ProviderListItem = {
   bio: string;
   price_note: string | null;
   photo_path: string | null;
+  is_demo: boolean;
   categoryIds: string[];
 };
 
@@ -154,7 +155,7 @@ export async function fetchProviders(categoryIds: string[] | null): Promise<Prov
   const embed = categoryIds ? 'provider_categories!inner(category_id)' : 'provider_categories(category_id)';
   let q = supabase
     .from('providers')
-    .select(`user_id, display_name, city, bio, price_note, photo_path, ${embed}`)
+    .select(`user_id, display_name, city, bio, price_note, photo_path, is_demo, ${embed}`)
     .limit(60);
   if (categoryIds) q = q.in('provider_categories.category_id', categoryIds);
   const { data, error } = await q;
@@ -177,7 +178,7 @@ export async function fetchProvider(userId: string): Promise<ProviderDetail | nu
   const { data, error } = await supabase
     .from('providers')
     .select(
-      'user_id, display_name, city, bio, price_note, photo_path, contact_phone, license_number, provider_categories(category_id)',
+      'user_id, display_name, city, bio, price_note, photo_path, is_demo, contact_phone, license_number, provider_categories(category_id)',
     )
     .eq('user_id', userId)
     .maybeSingle();

@@ -174,6 +174,7 @@ export default function ProviderScreen() {
               <Ionicons name="location-outline" size={16} color={colors.textMuted} />
               <AppText muted>{provider.city}</AppText>
             </View>
+            {provider.is_demo ? <AppText muted style={styles.small}>{ka.feed.demo}</AppText> : null}
             {summary ? (
               <View style={styles.locRow}>
                 <Stars value={summary.avg} size={16} />
