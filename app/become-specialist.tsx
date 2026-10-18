@@ -186,7 +186,7 @@ export default function BecomeSpecialistScreen() {
     setBusy(true);
     setError(null);
     try {
-      await saveMyProvider(userId, {
+      await saveMyProvider(userId, profile?.display_name ?? '', {
         city: city.trim(),
         bio: bio.trim(),
         price_note: price.trim() || null,

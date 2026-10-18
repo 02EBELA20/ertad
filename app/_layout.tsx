@@ -54,6 +54,8 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && !!profile}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="become-specialist" />
+        <Stack.Screen name="professionals" />
+        <Stack.Screen name="provider/[id]" />
       </Stack.Protected>
     </Stack>
   );

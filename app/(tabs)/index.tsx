@@ -49,8 +49,8 @@ export default function HomeScreen() {
   }
 
   function open(categoryId: string | null) {
-    if (categoryId) router.push({ pathname: '/board', params: { category: categoryId } });
-    else router.push('/board');
+    if (categoryId) router.push({ pathname: '/professionals', params: { category: categoryId } });
+    else router.push('/professionals');
   }
 
   return (

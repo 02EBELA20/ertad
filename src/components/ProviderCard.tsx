@@ -1,0 +1,81 @@
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { AppText } from '@/components/AppText';
+import { Avatar } from '@/components/Avatar';
+import { colors } from '@/theme/colors';
+
+type Props = {
+  name: string;
+  photoPath: string | null;
+  labels: string[];
+  city: string;
+  priceNote: string | null;
+  bio: string;
+  mine?: boolean;
+  mineLabel?: string;
+  onPress: () => void;
+};
+
+export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, onPress }: Props) {
+  return (
+    <Pressable onPress={onPress} style={styles.card} accessibilityRole="button">
+      <View style={styles.top}>
+        <Avatar path={photoPath} size={56} />
+        <View style={styles.head}>
+          <AppText weight="bold" numberOfLines={1} style={styles.name}>
+            {name}
+            {mine && mineLabel ? `  ·  ${mineLabel}` : ''}
+          </AppText>
+          <AppText muted numberOfLines={1} style={styles.small}>
+            {labels.join(', ')}
+          </AppText>
+          <View style={styles.meta}>
+            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+            <AppText muted numberOfLines={1} style={styles.small}>
+              {city}
+            </AppText>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+      </View>
+
+      <AppText numberOfLines={2} style={styles.bio}>
+        {bio}
+      </AppText>
+
+      {priceNote ? (
+        <View style={styles.price}>
+          <AppText weight="medium" style={styles.priceText}>
+            {priceNote}
+          </AppText>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+  },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  head: { flex: 1, gap: 2 },
+  name: { fontSize: 17, lineHeight: 26 },
+  small: { fontSize: 13, lineHeight: 18 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  bio: { fontSize: 15, lineHeight: 24 },
+  price: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  priceText: { color: colors.accent, fontSize: 13, lineHeight: 18 },
+});

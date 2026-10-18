@@ -53,7 +53,7 @@ export type ProviderInput = Omit<MyProvider, 'photo_path'> & {
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 /** Creates or updates the signed-in user's specialist profile. Throws on failure. */
-export async function saveMyProvider(userId: string, input: ProviderInput): Promise<void> {
+export async function saveMyProvider(userId: string, displayName: string, input: ProviderInput): Promise<void> {
   let photoPath = input.keepPhotoPath;
   let oldToRemove: string | null = null;
 
@@ -73,6 +73,7 @@ export async function saveMyProvider(userId: string, input: ProviderInput): Prom
   const previousPath = existing.data?.photo_path ?? null;
 
   const fields = {
+    display_name: displayName.slice(0, 60),
     city: input.city,
     bio: input.bio,
     price_note: input.price_note,
@@ -126,4 +127,64 @@ export function useMyProvider(userId: string | undefined) {
   );
 
   return { provider, loading, error, reload };
+}
+
+export type ProviderListItem = {
+  user_id: string;
+  display_name: string;
+  city: string;
+  bio: string;
+  price_note: string | null;
+  photo_path: string | null;
+  categoryIds: string[];
+};
+
+/** Fisher-Yates: nobody is pushed up or hidden, order is random on every load. */
+export function shuffle<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Visible providers, optionally limited to any of the given category ids. */
+export async function fetchProviders(categoryIds: string[] | null): Promise<ProviderListItem[]> {
+  const embed = categoryIds ? 'provider_categories!inner(category_id)' : 'provider_categories(category_id)';
+  let q = supabase
+    .from('providers')
+    .select(`user_id, display_name, city, bio, price_note, photo_path, ${embed}`)
+    .limit(60);
+  if (categoryIds) q = q.in('provider_categories.category_id', categoryIds);
+  const { data, error } = await q;
+  if (error) throw error;
+  type Row = Omit<ProviderListItem, 'categoryIds'> & { provider_categories: { category_id: string }[] };
+  return shuffle(
+    ((data ?? []) as unknown as Row[]).map(({ provider_categories, ...rest }) => ({
+      ...rest,
+      categoryIds: provider_categories.map((c) => c.category_id),
+    })),
+  );
+}
+
+export type ProviderDetail = ProviderListItem & {
+  contact_phone: string;
+  license_number: string | null;
+};
+
+export async function fetchProvider(userId: string): Promise<ProviderDetail | null> {
+  const { data, error } = await supabase
+    .from('providers')
+    .select(
+      'user_id, display_name, city, bio, price_note, photo_path, contact_phone, license_number, provider_categories(category_id)',
+    )
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const { provider_categories, ...rest } = data as unknown as Omit<ProviderDetail, 'categoryIds'> & {
+    provider_categories: { category_id: string }[];
+  };
+  return { ...rest, categoryIds: provider_categories.map((c) => c.category_id) };
 }
