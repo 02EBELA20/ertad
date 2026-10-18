@@ -4,7 +4,6 @@ import {
   Animated,
   Easing,
   Image,
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -220,7 +219,7 @@ export function OrbitFeed({
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
   const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
-  const MAP_W = Math.min(190, S * 0.54);
+  const MAP_W = Math.min(150, S * 0.44);
   const MAP_H = (MAP_W * 486) / 900;
 
   return (
@@ -265,12 +264,7 @@ export function OrbitFeed({
         >
           <Image
             source={require('../../assets/images/georgia-usa.png')}
-            style={[
-              { width: MAP_W, height: MAP_H },
-              Platform.OS === 'web'
-                ? ({ filter: 'drop-shadow(0 0 10px rgba(255,214,120,0.7)) drop-shadow(0 6px 14px rgba(0,0,0,0.5))' } as object)
-                : null,
-            ]}
+            style={{ width: MAP_W, height: MAP_H }}
             resizeMode="contain"
           />
         </Animated.View>
