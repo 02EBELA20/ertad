@@ -31,6 +31,7 @@ export default function BecomeSpecialistScreen() {
   const [isEdit, setIsEdit] = useState(false);
 
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [aiIds, setAiIds] = useState<string[]>([]); // categories that the AI picked (not the user)
   const [city, setCity] = useState(profile?.city ?? '');
   const [bio, setBio] = useState('');
   const [price, setPrice] = useState('');
@@ -105,6 +106,7 @@ export default function BecomeSpecialistScreen() {
       }
       return [...cur, id];
     });
+    setAiIds((cur) => cur.filter((c) => c !== id));
   }
 
   async function draftWithAi() {
@@ -122,10 +124,16 @@ export default function BecomeSpecialistScreen() {
     const ids = (data.ids as string[]).filter((id) => lookup.has(id)).slice(0, 3);
     if (ids.length === 0 && !data.bio) {
       if (__DEV__) console.log('draft-provider-profile no match', data.debug);
+      // Drop the previous AI suggestion so stale chips don't mislead; keep the user's own picks.
+      setCategoryIds((cur) => cur.filter((c) => !aiIds.includes(c)));
+      setAiIds([]);
       setError(ka.specialist.aiNoMatch);
       return;
     }
-    if (ids.length > 0) setCategoryIds(ids);
+    if (ids.length > 0) {
+      setCategoryIds(ids);
+      setAiIds(ids);
+    }
     if (typeof data.bio === 'string' && data.bio) setBio(data.bio);
     if (typeof data.price === 'string' && data.price) setPrice(data.price);
     setAiDone(true);
