@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,6 +19,10 @@ type Props = {
   placeholder?: string;
   /** when set, the picker opens directly inside this top-level category */
   startGroupId?: string | null;
+  /** opens the picker immediately (full-screen start of a flow) */
+  autoOpen?: boolean;
+  /** called when the picker is closed without choosing anything */
+  onDismiss?: () => void;
 };
 
 function Row({
@@ -43,9 +47,10 @@ function Row({
   );
 }
 
-export function CategoryPicker({ value, onChange, allowAll, label, placeholder, startGroupId }: Props) {
+export function CategoryPicker({ value, onChange, allowAll, label, placeholder, startGroupId, autoOpen, onDismiss }: Props) {
   const { groups, loading, error, reload } = useCategories();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!autoOpen);
+  const chose = useRef(false);
   const [group, setGroup] = useState<CategoryGroup | null>(null);
 
   const selectedText = useMemo(() => {
@@ -59,6 +64,7 @@ export function CategoryPicker({ value, onChange, allowAll, label, placeholder, 
   }, [groups, value]);
 
   function openPicker() {
+    chose.current = false;
     setGroup(startGroupId ? (groups.find((g) => g.parent.id === startGroupId) ?? null) : null);
     setOpen(true);
   }
@@ -66,9 +72,12 @@ export function CategoryPicker({ value, onChange, allowAll, label, placeholder, 
   function close() {
     setOpen(false);
     setGroup(null);
+    if (!chose.current) onDismiss?.();
+    chose.current = false;
   }
 
   function choose(id: string | null) {
+    chose.current = true;
     onChange(id);
     close();
   }

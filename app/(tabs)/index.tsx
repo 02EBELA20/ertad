@@ -78,7 +78,7 @@ export default function HomeScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <AppText weight="bold" style={styles.brandName}>
+            <AppText weight="bold" style={styles.brandName} accessibilityRole="header">
               {ka.home.appName}
             </AppText>
             <AppText weight="bold" style={styles.title}>
@@ -190,10 +190,12 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: 10, paddingBottom: 28, gap: 16 },
   hero: { gap: 4, alignItems: 'center' },
   brandName: {
-    fontSize: 34,
+    fontSize: 36,
     lineHeight: 46,
+    fontWeight: '800',
     color: '#F0C766',
-    letterSpacing: 2,
+    letterSpacing: 9,
+    paddingLeft: 9, // balances the trailing letter-spacing so the word is truly centered
     textAlign: 'center',
     textShadowColor: 'rgba(217,164,65,0.65)',
     textShadowRadius: 16,

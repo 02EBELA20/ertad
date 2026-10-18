@@ -22,6 +22,8 @@ export default function ProfessionalsScreen() {
   const { groups } = useCategories();
 
   const [category, setCategory] = useState<string | null>(params.category ?? null);
+  // When opened without a category, the full category picker comes first, then the people.
+  const [picked, setPicked] = useState(!!params.category);
   const [items, setItems] = useState<ProviderListItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [ratings, setRatings] = useState<Map<string, ReviewSummary>>(new Map());
@@ -62,9 +64,10 @@ export default function ProfessionalsScreen() {
 
   useEffect(() => {
     // wait until categories are known when a filter is set, so the parent expands to its children
+    if (!picked) return;
     if (category && groups.length === 0) return;
     load();
-  }, [load, category, groups.length]);
+  }, [load, category, groups.length, picked]);
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -82,6 +85,20 @@ export default function ProfessionalsScreen() {
         </AppText>
       </View>
 
+      {!picked ? (
+        <CategoryPicker
+          autoOpen
+          allowAll
+          value={null}
+          onChange={(id) => {
+            setCategory(id);
+            setPicked(true);
+          }}
+          onDismiss={goBack}
+        />
+      ) : null}
+
+      {picked ? (
       <ScrollView contentContainerStyle={styles.content}>
         <CategoryPicker value={category} onChange={setCategory} allowAll />
 
@@ -130,6 +147,7 @@ export default function ProfessionalsScreen() {
           </View>
         )}
       </ScrollView>
+      ) : null}
     </SafeAreaView>
   );
 }
