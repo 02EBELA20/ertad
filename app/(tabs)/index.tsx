@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -80,12 +80,9 @@ export default function HomeScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <View style={styles.brand}>
-              <Image source={require('../../assets/images/georgia-usa.png')} style={{ width: 46, height: 25 }} resizeMode="contain" />
-              <AppText weight="bold" style={styles.brandName}>
-                {ka.home.appName}
-              </AppText>
-            </View>
+            <AppText weight="bold" style={styles.brandName}>
+              {ka.home.appName}
+            </AppText>
             <AppText weight="bold" style={styles.title}>
               {ka.home.title}
             </AppText>
@@ -185,8 +182,16 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 20, paddingTop: 10, paddingBottom: 28, gap: 16 },
   hero: { gap: 4, alignItems: 'center' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-  brandName: { fontSize: 18, lineHeight: 26, color: 'rgba(240,215,160,0.95)', letterSpacing: 0.5 },
+  brandName: {
+    fontSize: 34,
+    lineHeight: 46,
+    color: '#F0C766',
+    letterSpacing: 2,
+    textAlign: 'center',
+    textShadowColor: 'rgba(217,164,65,0.65)',
+    textShadowRadius: 16,
+    textShadowOffset: { width: 0, height: 0 },
+  },
   spark: {
     width: 52,
     height: 52,
@@ -197,32 +202,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 25, lineHeight: 34, textAlign: 'center', color: colors.accent },
+  title: { fontSize: 20, lineHeight: 28, textAlign: 'center', color: colors.accent },
   heroHint: { textAlign: 'center', color: 'rgba(240,215,160,0.85)', fontSize: 14, lineHeight: 20, maxWidth: 320 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
-    padding: 8,
-    paddingLeft: 16,
+    padding: 6,
+    paddingLeft: 14,
   },
   input: {
     flex: 1,
-    minHeight: 48,
-    maxHeight: 140,
-    paddingTop: 12,
-    paddingBottom: 8,
+    minHeight: 40,
+    maxHeight: 130,
+    paddingTop: 8,
+    paddingBottom: 6,
     color: colors.text,
-    fontSize: 17,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 24,
     fontFamily: 'NotoSansGeorgian_400Regular',
     // @ts-expect-error web only: remove the browser focus outline
     outlineStyle: 'none',
   },
   send: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accent,

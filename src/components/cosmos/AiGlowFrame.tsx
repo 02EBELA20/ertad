@@ -28,7 +28,7 @@ export function AiGlowFrame({ children, focused, radius = 26 }: { children: Reac
   }, [on, spin, breathe]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const glowOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: focused ? [0.8, 1] : [0.45, 0.8] });
+  const glowOpacity = breathe.interpolate({ inputRange: [0, 1], outputRange: focused ? [0.55, 0.85] : [0.25, 0.5] });
 
   return (
     <View style={{ borderRadius: radius }}>
@@ -40,18 +40,18 @@ export function AiGlowFrame({ children, focused, radius = 26 }: { children: Reac
           {
             borderRadius: radius,
             opacity: glowOpacity,
-            boxShadow: '0 0 22px 2px rgba(120,100,255,0.45), 0 0 46px 6px rgba(70,200,230,0.22), 0 0 30px 0 rgba(217,164,65,0.22)',
+            boxShadow: '0 0 14px 0 rgba(120,100,255,0.32), 0 0 30px 2px rgba(70,200,230,0.14)',
           },
         ]}
       />
       {/* running light along the border */}
-      <View style={{ borderRadius: radius, overflow: 'hidden', padding: focused ? 2 : 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(120,130,200,0.35)' }}>
+      <View style={{ borderRadius: radius, overflow: 'hidden', padding: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(120,130,200,0.35)' }}>
         <Animated.View
           pointerEvents="none"
           style={[
             { position: 'absolute', width: 900, height: 900, transform: [{ rotate }] },
             gradient(
-              'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 38%, rgba(110,90,255,1) 46%, rgba(70,210,235,1) 52%, rgba(217,164,65,1) 58%, rgba(255,255,255,0) 66%, rgba(255,255,255,0) 100%)',
+              'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 38%, rgba(110,90,255,0.75) 46%, rgba(70,210,235,0.75) 52%, rgba(217,164,65,0.75) 58%, rgba(255,255,255,0) 66%, rgba(255,255,255,0) 100%)',
             ),
           ]}
         />
