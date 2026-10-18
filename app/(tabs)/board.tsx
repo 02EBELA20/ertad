@@ -18,7 +18,7 @@ export default function BoardScreen() {
           {ka.tabs.board}
         </AppText>
         <AppText muted>{ka.categories.boardHint}</AppText>
-        <CategoryPicker value={category} onChange={setCategory} allowAll />
+        <CategoryPicker value={category} onChange={setCategory} allowAll label={ka.categories.choose} />
       </ScrollView>
     </SafeAreaView>
   );

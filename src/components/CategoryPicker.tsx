@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
-import { useCategories } from '@/lib/categories';
+import { useCategories, CategoryGroup } from '@/lib/categories';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -10,103 +12,156 @@ type Props = {
   /** selected category id (a subcategory, or a top-level one that has no children) */
   value: string | null;
   onChange: (categoryId: string | null) => void;
-  /** show an "all" chip that clears the selection (for filters) */
+  /** adds an "all" row that clears the selection (for filters) */
   allowAll?: boolean;
+  label?: string;
 };
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function Row({
+  label,
+  onPress,
+  chevron,
+  selected,
+}: {
+  label: string;
+  onPress: () => void;
+  chevron?: boolean;
+  selected?: boolean;
+}) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-    >
-      <AppText weight="medium" style={[styles.chipText, active && styles.chipTextActive]}>
+    <Pressable onPress={onPress} style={styles.row} accessibilityRole="button">
+      <AppText weight={selected ? 'bold' : 'regular'} style={[styles.rowText, selected && styles.rowTextSelected]}>
         {label}
       </AppText>
+      {chevron ? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} /> : null}
+      {selected && !chevron ? <Ionicons name="checkmark" size={18} color={colors.accent} /> : null}
     </Pressable>
   );
 }
 
-export function CategoryPicker({ value, onChange, allowAll }: Props) {
+export function CategoryPicker({ value, onChange, allowAll, label }: Props) {
   const { groups, loading, error, reload } = useCategories();
-  const [openParent, setOpenParent] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [group, setGroup] = useState<CategoryGroup | null>(null);
 
-  if (loading) return <AppText muted>{ka.categories.loading}</AppText>;
-  if (error) {
-    return (
-      <View style={styles.block}>
-        <AppText muted>{ka.loadFailed}</AppText>
-        <AppButton variant="secondary" title={ka.retry} onPress={reload} />
-      </View>
-    );
+  const selectedText = useMemo(() => {
+    if (!value) return null;
+    for (const g of groups) {
+      if (g.parent.id === value) return g.parent.name_ka;
+      const child = g.children.find((c) => c.id === value);
+      if (child) return `${g.parent.name_ka} · ${child.name_ka}`;
+    }
+    return null;
+  }, [groups, value]);
+
+  function close() {
+    setOpen(false);
+    setGroup(null);
   }
 
-  const current = groups.find(
-    (g) => g.parent.id === openParent || g.children.some((c) => c.id === value) || g.parent.id === value,
-  );
-  const activeParentId = openParent ?? current?.parent.id ?? null;
-  const activeGroup = groups.find((g) => g.parent.id === activeParentId);
-
-  function pickParent(id: string, hasChildren: boolean) {
-    setOpenParent(id);
-    onChange(hasChildren ? null : id);
+  function choose(id: string | null) {
+    onChange(id);
+    close();
   }
 
   return (
-    <View style={styles.block}>
-      <View style={styles.wrap}>
-        {allowAll ? (
-          <Chip
-            label={ka.categories.all}
-            active={activeParentId === null && value === null}
-            onPress={() => {
-              setOpenParent(null);
-              onChange(null);
-            }}
-          />
-        ) : null}
-        {groups.map((g) => (
-          <Chip
-            key={g.parent.id}
-            label={g.parent.name_ka}
-            active={g.parent.id === activeParentId}
-            onPress={() => pickParent(g.parent.id, g.children.length > 0)}
-          />
-        ))}
-      </View>
-
-      {activeGroup && activeGroup.children.length > 0 ? (
-        <View style={styles.sub}>
-          <AppText muted style={styles.subTitle}>
-            {ka.categories.chooseSub}
-          </AppText>
-          <View style={styles.wrap}>
-            {activeGroup.children.map((c) => (
-              <Chip key={c.id} label={c.name_ka} active={c.id === value} onPress={() => onChange(c.id)} />
-            ))}
-          </View>
-        </View>
+    <View style={styles.wrap}>
+      {label ? (
+        <AppText weight="medium" muted style={styles.label}>
+          {label}
+        </AppText>
       ) : null}
+
+      <Pressable onPress={() => setOpen(true)} style={styles.field} accessibilityRole="button">
+        <AppText numberOfLines={1} style={[styles.fieldText, !selectedText && { color: colors.textMuted }]}>
+          {selectedText ?? (allowAll ? ka.categories.all : ka.categories.choose)}
+        </AppText>
+        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+      </Pressable>
+
+      <Modal visible={open} animationType="slide" onRequestClose={close}>
+        <SafeAreaView style={styles.modal}>
+          <View style={styles.header}>
+            <Pressable
+              onPress={group ? () => setGroup(null) : close}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={group ? ka.categories.back : ka.cancel}
+            >
+              <Ionicons name={group ? 'chevron-back' : 'close'} size={26} color={colors.text} />
+            </Pressable>
+            <AppText weight="bold" style={styles.headerTitle} numberOfLines={1}>
+              {group ? group.parent.name_ka : ka.categories.choose}
+            </AppText>
+          </View>
+
+          <ScrollView>
+            {loading ? (
+              <AppText muted style={styles.msg}>
+                {ka.categories.loading}
+              </AppText>
+            ) : error ? (
+              <View style={styles.msg}>
+                <AppText muted>{ka.loadFailed}</AppText>
+                <AppButton variant="secondary" title={ka.retry} onPress={reload} />
+              </View>
+            ) : group ? (
+              <>
+                <Row label={ka.categories.wholeCategory} selected={value === group.parent.id} onPress={() => choose(group.parent.id)} />
+                {group.children.map((c) => (
+                  <Row key={c.id} label={c.name_ka} selected={value === c.id} onPress={() => choose(c.id)} />
+                ))}
+              </>
+            ) : (
+              <>
+                {allowAll ? <Row label={ka.categories.all} selected={value === null} onPress={() => choose(null)} /> : null}
+                {groups.map((g) => (
+                  <Row
+                    key={g.parent.id}
+                    label={g.parent.name_ka}
+                    chevron={g.children.length > 0}
+                    onPress={() => (g.children.length > 0 ? setGroup(g) : choose(g.parent.id))}
+                  />
+                ))}
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  block: { gap: 16 },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
+  wrap: { gap: 8 },
+  label: { fontSize: 14, lineHeight: 20 },
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
   },
-  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { fontSize: 14, lineHeight: 22 },
-  chipTextActive: { color: colors.onAccent },
-  sub: { gap: 8 },
-  subTitle: { fontSize: 13, lineHeight: 18 },
+  fieldText: { flex: 1 },
+  modal: { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 14 },
+  headerTitle: { flex: 1, fontSize: 20, lineHeight: 30 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  rowText: { flex: 1 },
+  rowTextSelected: { color: colors.accent },
+  msg: { padding: 20, gap: 12 },
 });
