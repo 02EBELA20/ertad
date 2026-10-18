@@ -81,9 +81,6 @@ export default function HomeScreen() {
             <AppText weight="bold" style={styles.brandName} accessibilityRole="header">
               {ka.home.appName}
             </AppText>
-            <AppText weight="bold" style={styles.title}>
-              {ka.home.title}
-            </AppText>
             <AppText style={styles.heroHint}>{ka.home.assistantHint}</AppText>
           </View>
 
