@@ -17,6 +17,8 @@ type Props = {
   allowAll?: boolean;
   label?: string;
   placeholder?: string;
+  /** when set, the picker opens directly inside this top-level category */
+  startGroupId?: string | null;
 };
 
 function Row({
@@ -41,7 +43,7 @@ function Row({
   );
 }
 
-export function CategoryPicker({ value, onChange, allowAll, label, placeholder }: Props) {
+export function CategoryPicker({ value, onChange, allowAll, label, placeholder, startGroupId }: Props) {
   const { groups, loading, error, reload } = useCategories();
   const [open, setOpen] = useState(false);
   const [group, setGroup] = useState<CategoryGroup | null>(null);
@@ -55,6 +57,11 @@ export function CategoryPicker({ value, onChange, allowAll, label, placeholder }
     }
     return null;
   }, [groups, value]);
+
+  function openPicker() {
+    setGroup(startGroupId ? (groups.find((g) => g.parent.id === startGroupId) ?? null) : null);
+    setOpen(true);
+  }
 
   function close() {
     setOpen(false);
@@ -74,7 +81,7 @@ export function CategoryPicker({ value, onChange, allowAll, label, placeholder }
         </AppText>
       ) : null}
 
-      <Pressable onPress={() => setOpen(true)} style={styles.field} accessibilityRole="button">
+      <Pressable onPress={openPicker} style={styles.field} accessibilityRole="button">
         <AppText numberOfLines={1} style={[styles.fieldText, !selectedText && { color: colors.textMuted }]}>
           {selectedText ?? placeholder ?? (allowAll ? ka.categories.all : ka.categories.choose)}
         </AppText>

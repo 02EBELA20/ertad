@@ -95,16 +95,33 @@ export default function BecomeSpecialistScreen() {
 
   const needsLicense = categoryIds.some((id) => LICENSED_SLUGS.includes(lookup.get(id)?.slug ?? ''));
 
+  // top-level id for any category id
+  const parentOf = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of groups) {
+      m.set(g.parent.id, g.parent.id);
+      for (const c of g.children) m.set(c.id, g.parent.id);
+    }
+    return m;
+  }, [groups]);
+
+  // The AI only suggests a main category; the user refines it with a subcategory.
+  const aiParent = categoryIds.find((id) => aiIds.includes(id)) ?? null;
+  const aiParentHasChildren = !!aiParent && (groups.find((g) => g.parent.id === aiParent)?.children.length ?? 0) > 0;
+
   function addCategory(id: string | null) {
     if (!id) return;
     setError(null);
     setCategoryIds((cur) => {
       if (cur.includes(id)) return cur;
-      if (cur.length >= 3) {
+      // a subcategory replaces the whole-category chip of the same group
+      const parent = parentOf.get(id);
+      const base = parent && parent !== id ? cur.filter((c) => c !== parent) : cur;
+      if (base.length >= 3) {
         setError(ka.specialist.maxCategories);
         return cur;
       }
-      return [...cur, id];
+      return [...base, id];
     });
     setAiIds((cur) => cur.filter((c) => c !== id));
   }
@@ -121,7 +138,10 @@ export default function BecomeSpecialistScreen() {
       setError(ka.specialist.aiFailed);
       return;
     }
-    const ids = (data.ids as string[]).filter((id) => lookup.has(id)).slice(0, 3);
+    // Main categories only (unique, max 3); the user picks the subcategory.
+    const ids = Array.from(
+      new Set((data.ids as string[]).filter((id) => lookup.has(id)).map((id) => parentOf.get(id) ?? id)),
+    ).slice(0, 3);
     if (ids.length === 0 && !data.bio) {
       if (__DEV__) console.log('draft-provider-profile no match', data.debug);
       // Drop the previous AI suggestion so stale chips don't mislead; keep the user's own picks.
@@ -298,7 +318,18 @@ export default function BecomeSpecialistScreen() {
               })}
 
               {categoryIds.length < 3 ? (
-                <CategoryPicker value={null} onChange={addCategory} placeholder={categoryIds.length === 0 ? ka.specialist.manualCategory : ka.specialist.addCategory} />
+                <CategoryPicker
+                  value={null}
+                  onChange={addCategory}
+                  startGroupId={aiParentHasChildren ? aiParent : null}
+                  placeholder={
+                    aiParentHasChildren
+                      ? ka.specialist.pickSub
+                      : categoryIds.length === 0
+                        ? ka.specialist.manualCategory
+                        : ka.specialist.addCategory
+                  }
+                />
               ) : null}
             </View>
           ) : null}
