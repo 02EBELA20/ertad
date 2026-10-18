@@ -12,7 +12,7 @@ import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { startConversation } from '@/lib/chat';
 import { confirmAction } from '@/lib/confirm';
-import { PostDetail, closePost, daysLeft, describeCategory, fetchPost, timeAgo } from '@/lib/posts';
+import { PostDetail, closePost, daysLeft, describeCategory, fetchPost, pausePost, resumePost, timeAgo } from '@/lib/posts';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -110,6 +110,18 @@ export default function PostScreen() {
     });
   }
 
+  async function togglePause() {
+    if (!post) return;
+    try {
+      if (post.status === 'open') await pausePost(post.id);
+      else await resumePost(post.id);
+      const fresh = await fetchPost(post.id);
+      if (fresh) setPost(fresh);
+    } catch {
+      setError(ka.post.failed);
+    }
+  }
+
   const isMine = post?.author_id === me;
   const cat = post ? describeCategory(groups, post.category_id) : { label: '', slug: '' };
   const digits = post?.contact_phone?.replace(/\D/g, '') ?? '';
@@ -195,6 +207,8 @@ export default function PostScreen() {
 
           {post.status === 'closed' ? (
             <AppText muted>{ka.post.closedLabel}</AppText>
+          ) : post.status === 'paused' ? (
+            <AppText muted>{ka.post.pausedLabel}</AppText>
           ) : (
             <AppText muted style={styles.small}>
               {ka.post.daysLeft(left)}
@@ -219,8 +233,20 @@ export default function PostScreen() {
 
           {error ? <AppText style={styles.error}>{error}</AppText> : null}
 
-          {isMine && post.status === 'open' ? (
-            <AppButton variant="secondary" title={ka.post.close} onPress={onClose} />
+          {isMine && post.status !== 'closed' ? (
+            <>
+              <AppButton
+                variant="secondary"
+                title={post.status === 'open' ? ka.post.pause : ka.post.resume}
+                onPress={togglePause}
+              />
+              {post.status === 'open' ? (
+                <AppText muted style={styles.small}>
+                  {ka.post.pauseHint}
+                </AppText>
+              ) : null}
+              <AppButton variant="ghost" title={ka.post.close} onPress={onClose} />
+            </>
           ) : null}
         </ScrollView>
       )}

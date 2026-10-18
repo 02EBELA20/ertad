@@ -9,7 +9,7 @@ import { AppButton } from '@/components/AppButton';
 import { PostCard } from '@/components/PostCard';
 import { useCategories } from '@/lib/categories';
 import { confirmAction } from '@/lib/confirm';
-import { MyPost, daysLeft, deletePost, describeCategory, fetchMyPosts, timeAgo } from '@/lib/posts';
+import { MyPost, closePost, daysLeft, deletePost, describeCategory, fetchMyPosts, pausePost, resumePost, timeAgo } from '@/lib/posts';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -38,6 +38,33 @@ export default function MyPostsScreen() {
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/profile');
+  }
+
+  async function changeStatus(p: MyPost, action: 'pause' | 'resume') {
+    try {
+      if (action === 'pause') await pausePost(p.id);
+      else await resumePost(p.id);
+      await load();
+    } catch {
+      setFailed(true);
+    }
+  }
+
+  function closeIt(p: MyPost) {
+    confirmAction({
+      title: ka.post.closeTitle,
+      message: ka.post.closeMessage,
+      confirmText: ka.post.closeConfirm,
+      cancelText: ka.cancel,
+      onConfirm: async () => {
+        try {
+          await closePost(p.id);
+          await load();
+        } catch {
+          setFailed(true);
+        }
+      },
+    });
   }
 
   function remove(p: MyPost) {
@@ -88,9 +115,16 @@ export default function MyPostsScreen() {
             const cat = describeCategory(groups, p.category_id);
             const expired = new Date(p.expires_at).getTime() < Date.now();
             const state =
-              p.status === 'closed' ? ka.post.closedLabel : expired ? ka.post.expired : ka.post.daysLeft(daysLeft(p.expires_at));
+              p.status === 'closed'
+                ? ka.post.closedLabel
+                : p.status === 'paused'
+                  ? ka.post.pausedLabel
+                  : expired
+                    ? ka.post.expired
+                    : ka.post.daysLeft(daysLeft(p.expires_at));
+            const live = p.status === 'open' && !expired;
             return (
-              <View key={p.id} style={[styles.item, (p.status === 'closed' || expired) && { opacity: 0.6 }]}>
+              <View key={p.id} style={[styles.item, (p.status !== 'open' || expired) && { opacity: 0.6 }]}>
                 <PostCard
                   categorySlug={cat.slug}
                   categoryName={cat.label}
@@ -100,11 +134,34 @@ export default function MyPostsScreen() {
                   ago={`${timeAgo(p.created_at)} · ${state}`}
                   onPress={() => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
                 />
-                <Pressable onPress={() => remove(p)} style={styles.remove} accessibilityRole="button">
-                  <AppText weight="medium" style={styles.removeText}>
-                    {ka.post.remove}
-                  </AppText>
-                </Pressable>
+                <View style={styles.actionsRow}>
+                  {live ? (
+                    <Pressable onPress={() => changeStatus(p, 'pause')} style={styles.act} accessibilityRole="button">
+                      <AppText weight="medium" style={styles.actText}>
+                        {ka.post.pause}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                  {p.status === 'paused' ? (
+                    <Pressable onPress={() => changeStatus(p, 'resume')} style={styles.act} accessibilityRole="button">
+                      <AppText weight="medium" style={styles.actText}>
+                        {ka.post.resume}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                  {p.status !== 'closed' ? (
+                    <Pressable onPress={() => closeIt(p)} style={styles.act} accessibilityRole="button">
+                      <AppText weight="medium" style={styles.actText}>
+                        {ka.post.close}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                  <Pressable onPress={() => remove(p)} style={styles.act} accessibilityRole="button">
+                    <AppText weight="medium" style={styles.removeText}>
+                      {ka.post.remove}
+                    </AppText>
+                  </Pressable>
+                </View>
               </View>
             );
           })
@@ -121,6 +178,8 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: 4, gap: 14 },
   center: { alignItems: 'center', gap: 12, paddingTop: 32 },
   item: { gap: 6 },
-  remove: { alignSelf: 'flex-end', paddingHorizontal: 6 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 14, paddingHorizontal: 6 },
+  act: { paddingVertical: 4 },
+  actText: { color: colors.accent, fontSize: 14, lineHeight: 20 },
   removeText: { color: colors.danger, fontSize: 14, lineHeight: 20 },
 });

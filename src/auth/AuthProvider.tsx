@@ -14,6 +14,7 @@ export type Profile = {
   id: string;
   display_name: string;
   city: string;
+  state: string;
 };
 
 type AuthState = {
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (id: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, display_name, city')
+      .select('id, display_name, city, state')
       .eq('id', id)
       .maybeSingle();
 

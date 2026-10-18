@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { StatePicker } from '@/components/StatePicker';
 import { PostCard } from '@/components/PostCard';
 import { SubcategoryChips } from '@/components/SubcategoryChips';
 import { useCategories } from '@/lib/categories';
@@ -16,10 +17,11 @@ import { ka } from '@/i18n/ka';
 
 export default function BoardScreen() {
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const params = useLocalSearchParams<{ category?: string }>();
   const { groups } = useCategories();
   const [category, setCategory] = useState<string | null>(params.category ?? null);
+  const [stateFilter, setStateFilter] = useState<string | null>(profile?.state ?? null);
   const [items, setItems] = useState<BoardPost[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -37,11 +39,11 @@ export default function BoardScreen() {
   const load = useCallback(async () => {
     setFailed(false);
     try {
-      setItems(await fetchBoardPosts(filterIds));
+      setItems(await fetchBoardPosts(filterIds, stateFilter));
     } catch {
       setFailed(true);
     }
-  }, [filterIds]);
+  }, [filterIds, stateFilter]);
 
   // Reload when the screen gets focus (e.g. after publishing) or the filter changes.
   useFocusEffect(
@@ -70,6 +72,7 @@ export default function BoardScreen() {
         </View>
 
         <CategoryPicker value={category} onChange={setCategory} allowAll />
+        <StatePicker value={stateFilter} onChange={setStateFilter} allowAll />
         <SubcategoryChips groups={groups} category={category} onChange={setCategory} />
 
         {failed ? (

@@ -7,23 +7,27 @@ import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { StatePicker } from '@/components/StatePicker';
 import { SubcategoryChips } from '@/components/SubcategoryChips';
 import { ProviderCard } from '@/components/ProviderCard';
 import { useCategories } from '@/lib/categories';
 import { fetchProviders, ProviderListItem } from '@/lib/provider';
+import { cityWithState } from '@/lib/states';
 import { ReviewSummary, fetchSummaries } from '@/lib/reviews';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
 export default function ProfessionalsScreen() {
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const params = useLocalSearchParams<{ category?: string }>();
   const { groups } = useCategories();
 
   const [category, setCategory] = useState<string | null>(params.category ?? null);
   // When opened without a category, the full category picker comes first, then the people.
   const [picked, setPicked] = useState(!!params.category);
+  // Default: the user's own state; they can switch to "all states".
+  const [stateFilter, setStateFilter] = useState<string | null>(profile?.state ?? null);
   const [items, setItems] = useState<ProviderListItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [ratings, setRatings] = useState<Map<string, ReviewSummary>>(new Map());
@@ -52,7 +56,7 @@ export default function ProfessionalsScreen() {
     setItems(null);
     setFailed(false);
     try {
-      const list = await fetchProviders(filterIds);
+      const list = await fetchProviders(filterIds, stateFilter);
       setItems(list);
       fetchSummaries(list.map((p) => p.user_id))
         .then(setRatings)
@@ -60,7 +64,7 @@ export default function ProfessionalsScreen() {
     } catch {
       setFailed(true);
     }
-  }, [filterIds]);
+  }, [filterIds, stateFilter]);
 
   useEffect(() => {
     // wait until categories are known when a filter is set, so the parent expands to its children
@@ -101,6 +105,7 @@ export default function ProfessionalsScreen() {
       {picked ? (
       <ScrollView contentContainerStyle={styles.content}>
         <CategoryPicker value={category} onChange={setCategory} allowAll />
+        <StatePicker value={stateFilter} onChange={setStateFilter} allowAll />
 
         <SubcategoryChips groups={groups} category={category} onChange={setCategory} />
 
@@ -134,7 +139,9 @@ export default function ProfessionalsScreen() {
                 name={p.display_name || '—'}
                 photoPath={p.photo_path}
                 labels={p.categoryIds.map((id) => names.get(id)).filter((n): n is string => !!n)}
-                city={p.city}
+                city={cityWithState(p.city, p.state)}
+                online={p.online}
+                businessName={p.is_business ? p.business_name || ka.specialist.businessBadge : null}
                 priceNote={p.price_note}
                 bio={p.bio}
                 mine={p.user_id === session?.user.id}

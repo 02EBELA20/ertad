@@ -9,6 +9,7 @@ import { Avatar } from '@/components/Avatar';
 import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { fetchProvider, ProviderDetail } from '@/lib/provider';
+import { cityWithState } from '@/lib/states';
 import { startConversation } from '@/lib/chat';
 import { Stars } from '@/components/Stars';
 import { ReviewItem, ReviewSummary, fetchReviewSummary, fetchReviews } from '@/lib/reviews';
@@ -172,7 +173,7 @@ export default function ProviderScreen() {
             </AppText>
             <View style={styles.locRow}>
               <Ionicons name="location-outline" size={16} color={colors.textMuted} />
-              <AppText muted>{provider.city}</AppText>
+              <AppText muted>{cityWithState(provider.city, provider.state)}</AppText>
             </View>
             {provider.is_demo ? <AppText muted style={styles.small}>{ka.feed.demo}</AppText> : null}
             {summary ? (
@@ -214,6 +215,36 @@ export default function ProviderScreen() {
             <AppText weight="bold">{ka.provider.about}</AppText>
             <AppText>{provider.bio}</AppText>
           </View>
+
+          {provider.is_business ? (
+            <View style={styles.section}>
+              <AppText weight="bold">{ka.specialist.businessSection}</AppText>
+              {provider.business_name ? <AppText>{provider.business_name}</AppText> : null}
+              {provider.business_address ? (
+                <Pressable
+                  onPress={() =>
+                    Linking.openURL(
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(provider.business_address ?? '')}`,
+                    )
+                  }
+                  accessibilityRole="link"
+                >
+                  <View style={styles.locRow}>
+                    <Ionicons name="location-outline" size={16} color={colors.accent} />
+                    <AppText style={{ color: colors.accent, flex: 1 }}>{provider.business_address}</AppText>
+                  </View>
+                </Pressable>
+              ) : null}
+              {provider.business_hours ? <AppText muted>{provider.business_hours}</AppText> : null}
+              {provider.business_website && /^https?:\/\//i.test(provider.business_website) ? (
+                <Pressable onPress={() => Linking.openURL(provider.business_website ?? '')} accessibilityRole="link">
+                  <AppText style={{ color: colors.accent }} numberOfLines={1}>
+                    {provider.business_website}
+                  </AppText>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
 
           {provider.price_note ? (
             <View style={styles.section}>

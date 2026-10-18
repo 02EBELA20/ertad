@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { AppText } from '@/components/AppText';
 import { AppInput } from '@/components/AppInput';
 import { AppButton } from '@/components/AppButton';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { StatePicker } from '@/components/StatePicker';
 import { useCategories } from '@/lib/categories';
 import { toE164 } from '@/lib/phone';
 import { createPost } from '@/lib/posts';
@@ -29,6 +30,8 @@ export default function NewPostScreen() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [city, setCity] = useState(profile?.city ?? '');
+  const [state, setState] = useState<string | null>(profile?.state ?? null);
+  const [online, setOnline] = useState(false);
   const [budget, setBudget] = useState('');
   const [phone, setPhone] = useState(session?.user.phone ? `+${session.user.phone.replace(/^\+/, '')}` : '');
 
@@ -69,6 +72,7 @@ export default function NewPostScreen() {
     if (busy) return;
     if (!categoryId) return setError(ka.post.needCategory);
     if (body.trim().length < 10) return setError(ka.post.needBody);
+    if (!state) return setError(ka.state.choose);
     if (city.trim().length < 2) return setError(ka.post.needCity);
     let e164 = '';
     if (phone.trim()) {
@@ -79,7 +83,7 @@ export default function NewPostScreen() {
     setBusy(true);
     setError(null);
     try {
-      const id = await createPost(userId, { categoryId, city, body, budget, phone: e164 });
+      const id = await createPost(userId, { categoryId, city, state, online, body, budget, phone: e164 });
       router.replace({ pathname: '/post/[id]', params: { id } });
     } catch (e) {
       const msg = String((e as { message?: string })?.message ?? '');
@@ -148,7 +152,12 @@ export default function NewPostScreen() {
             </AppText>
           </View>
 
+          <StatePicker value={state} onChange={setState} label={ka.state.label} />
           <AppInput label={ka.post.city} value={city} onChangeText={setCity} />
+          <View style={styles.switchRow}>
+            <AppText style={styles.flex}>{ka.post.onlineLabel}</AppText>
+            <Switch value={online} onValueChange={setOnline} trackColor={{ true: colors.accent, false: colors.border }} />
+          </View>
           <AppInput
             label={ka.post.budget}
             placeholder={ka.post.budgetPlaceholder}
@@ -211,5 +220,6 @@ const styles = StyleSheet.create({
     outlineStyle: 'none',
   },
   small: { fontSize: 13, lineHeight: 18 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   error: { color: colors.danger },
 });

@@ -12,6 +12,7 @@ import { Avatar } from '@/components/Avatar';
 import { useCategories } from '@/lib/categories';
 import { supabase } from '@/lib/supabase';
 import { useMyProvider } from '@/lib/provider';
+import { cityWithState } from '@/lib/states';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -69,7 +70,7 @@ export default function ProfileScreen() {
           {profile?.display_name}
         </AppText>
         <AppText muted>
-          {ka.profile.city}: {profile?.city}
+          {ka.profile.city}: {profile ? cityWithState(profile.city, profile.state) : ''}
         </AppText>
         <AppText muted>
           {ka.profile.phone}: {session?.user.phone ? `+${session.user.phone.replace(/^\+/, '')}` : ''}

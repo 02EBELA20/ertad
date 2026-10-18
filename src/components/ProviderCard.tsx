@@ -17,10 +17,12 @@ type Props = {
   mineLabel?: string;
   rating?: { avg: number; cnt: number } | null;
   demo?: boolean;
+  online?: boolean;
+  businessName?: string | null;
   onPress: () => void;
 };
 
-export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, rating, demo, onPress }: Props) {
+export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mine, mineLabel, rating, demo, online, businessName, onPress }: Props) {
   return (
     <Pressable onPress={onPress} style={styles.card} accessibilityRole="button">
       <View style={styles.top}>
@@ -46,8 +48,17 @@ export function ProviderCard({ name, photoPath, labels, city, priceNote, bio, mi
             <Ionicons name="location-outline" size={14} color={colors.textMuted} />
             <AppText muted numberOfLines={1} style={styles.small}>
               {city}
+              {online ? `  ·  ${ka.state.onlineBadge}` : ''}
             </AppText>
           </View>
+          {businessName ? (
+            <View style={styles.meta}>
+              <Ionicons name="storefront-outline" size={14} color={colors.accent} />
+              <AppText numberOfLines={1} style={[styles.small, { color: colors.accent }]}>
+                {businessName}
+              </AppText>
+            </View>
+          ) : null}
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </View>

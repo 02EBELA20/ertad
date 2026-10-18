@@ -2,8 +2,18 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-export type MyProvider = {
+export type BusinessInfo = {
+  is_business: boolean;
+  business_name: string | null;
+  business_address: string | null;
+  business_website: string | null;
+  business_hours: string | null;
+};
+
+export type MyProvider = BusinessInfo & {
   city: string;
+  state: string;
+  online: boolean;
   bio: string;
   price_note: string | null;
   contact_phone: string;
@@ -32,7 +42,9 @@ export function avatarUrl(path: string | null | undefined): string | null {
 export async function fetchMyProvider(userId: string): Promise<MyProvider | null> {
   const { data, error } = await supabase
     .from('providers')
-    .select('city, bio, price_note, contact_phone, license_number, photo_path, visible, allow_feed')
+    .select(
+      'city, state, online, bio, price_note, contact_phone, license_number, photo_path, visible, allow_feed, is_business, business_name, business_address, business_website, business_hours',
+    )
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
@@ -75,6 +87,13 @@ export async function saveMyProvider(userId: string, displayName: string, input:
   const fields = {
     display_name: displayName.slice(0, 60),
     city: input.city,
+    state: input.state,
+    online: input.online,
+    is_business: input.is_business,
+    business_name: input.is_business ? input.business_name : null,
+    business_address: input.is_business ? input.business_address : null,
+    business_website: input.is_business ? input.business_website : null,
+    business_hours: input.is_business ? input.business_hours : null,
     bio: input.bio,
     price_note: input.price_note,
     contact_phone: input.contact_phone,
@@ -133,6 +152,10 @@ export type ProviderListItem = {
   user_id: string;
   display_name: string;
   city: string;
+  state: string;
+  online: boolean;
+  is_business: boolean;
+  business_name: string | null;
   bio: string;
   price_note: string | null;
   photo_path: string | null;
@@ -150,14 +173,15 @@ export function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-/** Visible providers, optionally limited to any of the given category ids. */
-export async function fetchProviders(categoryIds: string[] | null): Promise<ProviderListItem[]> {
+/** Visible providers, optionally limited to category ids and to one state (online providers always match). */
+export async function fetchProviders(categoryIds: string[] | null, state: string | null = null): Promise<ProviderListItem[]> {
   const embed = categoryIds ? 'provider_categories!inner(category_id)' : 'provider_categories(category_id)';
   let q = supabase
     .from('providers')
-    .select(`user_id, display_name, city, bio, price_note, photo_path, is_demo, ${embed}`)
+    .select(`user_id, display_name, city, state, online, is_business, business_name, bio, price_note, photo_path, is_demo, ${embed}`)
     .limit(60);
   if (categoryIds) q = q.in('provider_categories.category_id', categoryIds);
+  if (state) q = q.or(`state.eq.${state},online.eq.true`);
   const { data, error } = await q;
   if (error) throw error;
   type Row = Omit<ProviderListItem, 'categoryIds'> & { provider_categories: { category_id: string }[] };
@@ -169,7 +193,7 @@ export async function fetchProviders(categoryIds: string[] | null): Promise<Prov
   );
 }
 
-export type ProviderDetail = ProviderListItem & {
+export type ProviderDetail = ProviderListItem & BusinessInfo & {
   contact_phone: string;
   license_number: string | null;
 };
@@ -178,7 +202,7 @@ export async function fetchProvider(userId: string): Promise<ProviderDetail | nu
   const { data, error } = await supabase
     .from('providers')
     .select(
-      'user_id, display_name, city, bio, price_note, photo_path, is_demo, contact_phone, license_number, provider_categories(category_id)',
+      'user_id, display_name, city, state, online, is_business, business_name, business_address, business_website, business_hours, bio, price_note, photo_path, is_demo, contact_phone, license_number, provider_categories(category_id)',
     )
     .eq('user_id', userId)
     .maybeSingle();

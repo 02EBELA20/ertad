@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
 import { AppInput } from '@/components/AppInput';
 import { AppButton } from '@/components/AppButton';
+import { StatePicker } from '@/components/StatePicker';
 import { FormScreen } from '@/components/FormScreen';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
@@ -14,6 +15,7 @@ export default function OnboardingScreen() {
   const { session, refreshProfile, signOut } = useAuth();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
+  const [state, setState] = useState<string | null>(null);
   const [adult, setAdult] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +25,7 @@ export default function OnboardingScreen() {
     const cityName = city.trim();
 
     if (displayName.length < 2) return setError(ka.onboarding.needName);
+    if (!state) return setError(ka.onboarding.needState);
     if (cityName.length < 2) return setError(ka.onboarding.needCity);
     if (!adult) return setError(ka.onboarding.needAdult);
     if (!session) return;
@@ -33,6 +36,7 @@ export default function OnboardingScreen() {
       id: session.user.id,
       display_name: displayName,
       city: cityName,
+      state,
     });
     // 23505 = profile already exists (e.g. double tap): just reload it
     if (err && err.code !== '23505') {
@@ -62,6 +66,7 @@ export default function OnboardingScreen() {
           autoComplete="given-name"
           maxLength={60}
         />
+        <StatePicker value={state} onChange={setState} label={ka.state.label} />
         <AppInput
           label={ka.onboarding.cityLabel}
           placeholder={ka.onboarding.cityPlaceholder}

@@ -15,20 +15,22 @@ export type BoardPost = {
 
 export type PostDetail = BoardPost & {
   contact_phone: string | null;
-  status: 'open' | 'closed';
+  status: 'open' | 'paused' | 'closed';
   expires_at: string;
 };
 
 export type NewPost = {
   categoryId: string;
   city: string;
+  state: string;
+  online: boolean;
   body: string;
   budget: string;
   phone: string; // digits with leading +, or ''
 };
 
-export async function fetchBoardPosts(categoryIds: string[] | null): Promise<BoardPost[]> {
-  const { data, error } = await supabase.rpc('board_posts', { cat_ids: categoryIds });
+export async function fetchBoardPosts(categoryIds: string[] | null, state: string | null = null): Promise<BoardPost[]> {
+  const { data, error } = await supabase.rpc('board_posts', { cat_ids: categoryIds, st: state });
   if (error) throw error;
   return (data ?? []) as BoardPost[];
 }
@@ -46,6 +48,8 @@ export async function createPost(authorId: string, p: NewPost): Promise<string> 
       author_id: authorId,
       category_id: p.categoryId,
       city: p.city.trim(),
+      state: p.state,
+      online: p.online,
       body: p.body.trim(),
       budget_note: p.budget.trim() || null,
       contact_phone: p.phone || null,
@@ -62,7 +66,7 @@ export type MyPost = {
   city: string;
   body: string;
   budget_note: string | null;
-  status: 'open' | 'closed';
+  status: 'open' | 'paused' | 'closed';
   expires_at: string;
   created_at: string;
 };
@@ -78,10 +82,15 @@ export async function fetchMyPosts(authorId: string): Promise<MyPost[]> {
   return (data ?? []) as MyPost[];
 }
 
-export async function closePost(id: string): Promise<void> {
-  const { error } = await supabase.from('posts').update({ status: 'closed' }).eq('id', id);
+async function setPostStatus(id: string, status: 'open' | 'paused' | 'closed'): Promise<void> {
+  const { error } = await supabase.rpc('set_post_status', { pid: id, new_status: status });
   if (error) throw error;
 }
+
+export const closePost = (id: string) => setPostStatus(id, 'closed');
+/** Hides the post without deleting it; the remaining days are kept. */
+export const pausePost = (id: string) => setPostStatus(id, 'paused');
+export const resumePost = (id: string) => setPostStatus(id, 'open');
 
 export async function deletePost(id: string): Promise<void> {
   const { error } = await supabase.from('posts').delete().eq('id', id);

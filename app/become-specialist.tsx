@@ -10,9 +10,11 @@ import { AppInput } from '@/components/AppInput';
 import { AppButton } from '@/components/AppButton';
 import { Avatar } from '@/components/Avatar';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { StatePicker } from '@/components/StatePicker';
 import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { toE164 } from '@/lib/phone';
+import { normalizeUrl } from '@/lib/states';
 import { LICENSED_SLUGS, fetchMyProvider, saveMyProvider } from '@/lib/provider';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
@@ -33,6 +35,13 @@ export default function BecomeSpecialistScreen() {
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [aiIds, setAiIds] = useState<string[]>([]); // categories that the AI picked (not the user)
   const [city, setCity] = useState(profile?.city ?? '');
+  const [state, setState] = useState<string | null>(profile?.state ?? null);
+  const [online, setOnline] = useState(false);
+  const [isBusiness, setIsBusiness] = useState(false);
+  const [bizName, setBizName] = useState('');
+  const [bizAddress, setBizAddress] = useState('');
+  const [bizSite, setBizSite] = useState('');
+  const [bizHours, setBizHours] = useState('');
   const [bio, setBio] = useState('');
   const [price, setPrice] = useState('');
   const [phone, setPhone] = useState(session?.user.phone ? `+${session.user.phone.replace(/^\+/, '')}` : '');
@@ -62,6 +71,13 @@ export default function BecomeSpecialistScreen() {
           setIsEdit(true);
           setCategoryIds(p.categoryIds);
           setCity(p.city);
+          setState(p.state);
+          setOnline(p.online);
+          setIsBusiness(p.is_business);
+          setBizName(p.business_name ?? '');
+          setBizAddress(p.business_address ?? '');
+          setBizSite(p.business_website ?? '');
+          setBizHours(p.business_hours ?? '');
           setBio(p.bio);
           setPrice(p.price_note ?? '');
           setPhone(p.contact_phone);
@@ -190,11 +206,14 @@ export default function BecomeSpecialistScreen() {
 
   function validate(n: number): string | null {
     if (n === 1 && categoryIds.length === 0) return ka.specialist.needCategory;
+    if (n === 2 && !state) return ka.specialist.needState;
     if (n === 2 && city.trim().length < 2) return ka.specialist.needCity;
     if (n === 3 && bio.trim().length < 10) return ka.specialist.needBio;
     if (n === 4) {
       if (!toE164(phone)) return ka.specialist.needPhone;
       if (needsLicense && license.trim().length < 2) return ka.specialist.needLicense;
+      if (isBusiness && bizName.trim().length < 2) return ka.specialist.needBusinessName;
+      if (isBusiness && bizSite.trim() && !normalizeUrl(bizSite)) return ka.specialist.badWebsite;
     }
     if (n === 5 && !consent) return ka.specialist.needConsent;
     return null;
@@ -217,6 +236,13 @@ export default function BecomeSpecialistScreen() {
     try {
       await saveMyProvider(userId, profile?.display_name ?? '', {
         city: city.trim(),
+        state: state ?? 'NY',
+        online,
+        is_business: isBusiness,
+        business_name: bizName.trim() || null,
+        business_address: bizAddress.trim() || null,
+        business_website: normalizeUrl(bizSite),
+        business_hours: bizHours.trim() || null,
         bio: bio.trim(),
         price_note: price.trim() || null,
         contact_phone: e164,
@@ -339,13 +365,17 @@ export default function BecomeSpecialistScreen() {
               <AppText weight="bold" style={styles.title}>
                 {ka.specialist.step2Title}
               </AppText>
+              <StatePicker value={state} onChange={setState} label={ka.state.label} />
               <AppInput
                 label={ka.specialist.cityLabel}
                 placeholder={ka.specialist.cityPlaceholder}
                 value={city}
                 onChangeText={setCity}
-                autoFocus
               />
+              <View style={styles.switchRow}>
+                <AppText style={styles.flex}>{ka.state.online}</AppText>
+                <Switch value={online} onValueChange={setOnline} trackColor={{ true: colors.accent, false: colors.border }} />
+              </View>
             </View>
           ) : null}
 
@@ -400,6 +430,38 @@ export default function BecomeSpecialistScreen() {
                   <AppText muted style={styles.small}>
                     {ka.specialist.licenseNote}
                   </AppText>
+                </>
+              ) : null}
+
+              <View style={styles.switchRow}>
+                <AppText style={styles.flex}>{ka.specialist.businessToggle}</AppText>
+                <Switch value={isBusiness} onValueChange={setIsBusiness} trackColor={{ true: colors.accent, false: colors.border }} />
+              </View>
+              {isBusiness ? (
+                <>
+                  <AppInput label={ka.specialist.businessName} value={bizName} onChangeText={setBizName} maxLength={80} />
+                  <AppInput
+                    label={ka.specialist.businessAddress}
+                    hint={ka.specialist.businessAddressHint}
+                    value={bizAddress}
+                    onChangeText={setBizAddress}
+                    maxLength={160}
+                  />
+                  <AppInput
+                    label={ka.specialist.businessWebsite}
+                    value={bizSite}
+                    onChangeText={setBizSite}
+                    maxLength={200}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                  />
+                  <AppInput
+                    label={ka.specialist.businessHours}
+                    placeholder={ka.specialist.businessHoursPlaceholder}
+                    value={bizHours}
+                    onChangeText={setBizHours}
+                    maxLength={120}
+                  />
                 </>
               ) : null}
             </View>
