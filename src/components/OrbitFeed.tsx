@@ -17,14 +17,14 @@ import { categoryIcon } from '@/lib/categoryIcons';
 import { FeedItem } from '@/lib/feed';
 import { describeCategory } from '@/lib/posts';
 import { COSMOS, Glow } from '@/components/cosmos/Glow';
-import { FlagPlanet, PlanetRing } from '@/components/cosmos/FlagPlanet';
+import { FlagPlanet } from '@/components/cosmos/FlagPlanet';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
 const MAX_SLOTS = 6;
 const AVATAR = 54;
 const TICK_MS = 4200;
-const PERIOD = 36000;
+const PERIOD = 40000;
 const STEPS = 48;
 const TILT = -7; // degrees, a slight tilt makes the ring feel like a real 3D plane
 const RY = 0.5;
@@ -76,7 +76,6 @@ export function OrbitFeed({
   const breathe = useRef(new Animated.Value(0)).current;
   const boost = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
   const pop = useRef(new Animated.Value(1)).current;
-  const sway = useRef(new Animated.Value(0)).current;
   const scales = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
 
   useFocusEffect(
@@ -103,50 +102,34 @@ export function OrbitFeed({
     Animated.stagger(
       120,
       scales.slice(0, slotsCount).map((v) =>
-        Animated.spring(v, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }),
+        Animated.spring(v, { toValue: 1, friction: 6, tension: 70, useNativeDriver: false }),
       ),
     ).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
-  // Endless orbit + breathing planet.
+  // Endless orbit: driven by the clock on every frame, so it can never stall or drift.
   useEffect(() => {
     if (!active || reduceMotion || slotsCount === 0) return;
-    spin.setValue(0);
-    t0.current = Date.now();
-    const rot = Animated.loop(
-      Animated.timing(spin, { toValue: 1, duration: PERIOD, easing: Easing.linear, useNativeDriver: true }),
-    );
-    const br = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breathe, { toValue: 1, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(breathe, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    const sw = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sway, { toValue: 1, duration: 3600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(sway, { toValue: 0, duration: 3600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    rot.start();
-    br.start();
-    sw.start();
-    return () => {
-      rot.stop();
-      br.stop();
-      sw.stop();
+    let raf = 0;
+    const frame = () => {
+      const now = Date.now();
+      spin.setValue(((now - t0.current) % PERIOD) / PERIOD);
+      breathe.setValue(0.5 + 0.5 * Math.sin((now / 5200) * 2 * Math.PI));
+      raf = requestAnimationFrame(frame);
     };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
   }, [active, reduceMotion, slotsCount, spin, breathe]);
 
   function showFeatured(idx: number) {
     featuredRef.current = idx;
-    boost.forEach((v, k) => Animated.spring(v, { toValue: k === idx ? 1.14 : 1, friction: 6, tension: 60, useNativeDriver: true }).start());
+    boost.forEach((v, k) => Animated.spring(v, { toValue: k === idx ? 1.14 : 1, friction: 6, tension: 60, useNativeDriver: false }).start());
     fade.setValue(0);
     pop.setValue(0);
-    Animated.spring(pop, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }).start();
+    Animated.spring(pop, { toValue: 1, friction: 6, tension: 70, useNativeDriver: false }).start();
     setFeaturedIdx(idx);
-    Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: false }).start();
   }
 
   // Several times a second: layering, who is at the front, and quiet swaps at the back.
@@ -171,12 +154,12 @@ export function OrbitFeed({
       if (!reduceMotion && queueRef.current.length > 0 && depths[back] < -0.85 && Date.now() - lastSwap.current > TICK_MS) {
         lastSwap.current = Date.now();
         const k = back;
-        Animated.timing(scales[k], { toValue: 0, duration: 260, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(() => {
+        Animated.timing(scales[k], { toValue: 0, duration: 260, easing: Easing.in(Easing.quad), useNativeDriver: false }).start(() => {
           const incoming = queueRef.current.shift()!;
           queueRef.current.push(slotsRef.current[k]);
           slotsRef.current[k] = incoming;
           setSlots(slotsRef.current.slice());
-          Animated.spring(scales[k], { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }).start();
+          Animated.spring(scales[k], { toValue: 1, friction: 6, tension: 70, useNativeDriver: false }).start();
         });
       }
     }, 140);
@@ -236,7 +219,7 @@ export function OrbitFeed({
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
   const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
-  const PLANET = 88;
+  const PLANET = 84;
 
   return (
     <View style={styles.wrap}>
@@ -259,41 +242,10 @@ export function OrbitFeed({
           <Glow size={PLANET * 3.4} color={[70, 100, 255]} intensity={0.6} />
         </Animated.View>
 
-        {/* soft glowing track of the orbit */}
-        <View
-          pointerEvents="none"
-          style={[
-            styles.abs,
-            {
-              width: RX * 2,
-              height: RX * 2 * RY,
-              borderRadius: RX,
-              borderWidth: 1,
-              borderColor: 'rgba(150,170,255,0.2)',
-              boxShadow: '0 0 18px rgba(120,140,255,0.28), inset 0 0 18px rgba(120,140,255,0.16)',
-              transform: [{ rotate: `${TILT}deg` }],
-            },
-          ]}
-        />
-        {/* slowly turning light rays behind the planet */}
-        <Animated.View pointerEvents="none" style={[styles.abs, { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]}>
-          {[0, 45, 90, 135].map((d) => (
-            <View key={d} style={[styles.abs, { left: -PLANET * 1.7, top: -PLANET * 0.25, transform: [{ rotate: `${d}deg` }] }]}>
-              <Glow size={PLANET * 3.4} squash={0.16} color={[255, 225, 160]} intensity={0.45} />
-            </View>
-          ))}
-        </Animated.View>
-        <PlanetRing size={PLANET} half="back" />
-
         {/* the planet: Georgia and America joined in one globe */}
         <Animated.View style={[styles.planet, { width: PLANET, height: PLANET, transform: [{ scale: planetScale }], zIndex: 50 }]}>
-          <FlagPlanet
-            size={PLANET}
-            sway={sway.interpolate({ inputRange: [0, 1], outputRange: [-7, 7] })}
-          />
+          <FlagPlanet size={PLANET} />
         </Animated.View>
-
-        <PlanetRing size={PLANET} half="front" />
 
         {/* the orbiting members */}
         {slots.map((item, i) => {
