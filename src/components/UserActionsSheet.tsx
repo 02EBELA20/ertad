@@ -20,6 +20,7 @@ export function UserActionsSheet({
   otherId,
   otherName,
   conversationId,
+  postId,
   isBlocked,
   onBlockChange,
 }: {
@@ -29,6 +30,7 @@ export function UserActionsSheet({
   otherId: string;
   otherName?: string | null;
   conversationId?: string | null;
+  postId?: string | null;
   isBlocked: boolean;
   onBlockChange: (blocked: boolean) => void;
 }) {
@@ -51,7 +53,7 @@ export function UserActionsSheet({
     setBusy(true);
     setError(null);
     try {
-      await reportUser({ reporterId: me, targetUserId: otherId, conversationId, reason, details });
+      await reportUser({ reporterId: me, targetUserId: otherId, conversationId, postId, reason, details });
       setStep('done');
     } catch (e) {
       const msg = String((e as { message?: string })?.message ?? '');

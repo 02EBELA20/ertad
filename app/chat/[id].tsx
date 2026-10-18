@@ -108,7 +108,13 @@ export default function ChatScreen() {
       setText('');
     } catch (e) {
       const msg = String((e as { message?: string })?.message ?? '');
-      setSendError(msg.includes('rate_limited') ? ka.chat.tooFast : ka.chat.sendFailed);
+      setSendError(
+        msg.includes('rate_limited')
+          ? ka.chat.tooFast
+          : msg.includes('daily_limit')
+            ? ka.chat.dailyLimit
+            : ka.chat.sendFailed,
+      );
     } finally {
       setSending(false);
     }

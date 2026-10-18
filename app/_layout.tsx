@@ -57,6 +57,9 @@ function RootNavigator() {
         <Stack.Screen name="professionals" />
         <Stack.Screen name="provider/[id]" />
         <Stack.Screen name="chat/[id]" />
+        <Stack.Screen name="post/new" />
+        <Stack.Screen name="post/[id]" />
+        <Stack.Screen name="my-posts" />
       </Stack.Protected>
     </Stack>
   );

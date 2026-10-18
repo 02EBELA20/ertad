@@ -47,7 +47,7 @@ export default function ProviderScreen() {
   const { groups } = useCategories();
   const { session } = useAuth();
   const [opening, setOpening] = useState(false);
-  const [chatError, setChatError] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
@@ -89,12 +89,13 @@ export default function ProviderScreen() {
   async function openChat() {
     if (!provider || opening) return;
     setOpening(true);
-    setChatError(false);
+    setChatError(null);
     try {
       const cid = await startConversation(provider.user_id);
       router.push({ pathname: '/chat/[id]', params: { id: cid } });
-    } catch {
-      setChatError(true);
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? '');
+      setChatError(msg.includes('daily_limit') ? ka.chat.newLimit : ka.chat.openFailed);
     } finally {
       setOpening(false);
     }
@@ -171,7 +172,7 @@ export default function ProviderScreen() {
               disabled={isMe || opening}
             />
           </View>
-          {chatError ? <AppText style={styles.chatError}>{ka.chat.openFailed}</AppText> : null}
+          {chatError ? <AppText style={styles.chatError}>{chatError}</AppText> : null}
 
           <View style={styles.chips}>
             {labels.map((l) => (

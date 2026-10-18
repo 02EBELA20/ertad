@@ -1,59 +1,88 @@
-import { useEffect, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
+import { AppButton } from '@/components/AppButton';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { PostCard } from '@/components/PostCard';
+import { SubcategoryChips } from '@/components/SubcategoryChips';
+import { useCategories } from '@/lib/categories';
+import { BoardPost, describeCategory, fetchBoardPosts, timeAgo } from '@/lib/posts';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
-// Stage 3 skeleton of the board. Real posts arrive in stage 5.
-// The sample cards below are shown in development builds only, to judge the design.
 export default function BoardScreen() {
+  const router = useRouter();
+  const { session } = useAuth();
   const params = useLocalSearchParams<{ category?: string }>();
+  const { groups } = useCategories();
   const [category, setCategory] = useState<string | null>(params.category ?? null);
+  const [items, setItems] = useState<BoardPost[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (params.category) setCategory(params.category);
   }, [params.category]);
 
+  // A main category also matches everything under it.
+  const filterIds = useMemo(() => {
+    if (!category) return null;
+    const g = groups.find((x) => x.parent.id === category);
+    return g ? [g.parent.id, ...g.children.map((c) => c.id)] : [category];
+  }, [category, groups]);
+
+  const load = useCallback(async () => {
+    setFailed(false);
+    try {
+      setItems(await fetchBoardPosts(filterIds));
+    } catch {
+      setFailed(true);
+    }
+  }, [filterIds]);
+
+  // Reload when the screen gets focus (e.g. after publishing) or the filter changes.
+  useFocusEffect(
+    useCallback(() => {
+      if (category && groups.length === 0) return;
+      load();
+    }, [load, category, groups.length]),
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <AppText weight="bold" style={styles.title}>
-            {ka.tabs.board}
-          </AppText>
-          <AppText muted>{ka.board.subtitle}</AppText>
+        <View style={styles.headerRow}>
+          <View style={styles.flex}>
+            <AppText weight="bold" style={styles.title}>
+              {ka.tabs.board}
+            </AppText>
+            <AppText muted>{ka.board.subtitle}</AppText>
+          </View>
+          <Pressable onPress={() => router.push('/post/new')} style={styles.add} accessibilityRole="button">
+            <Ionicons name="add" size={20} color={colors.onAccent} />
+            <AppText weight="bold" style={styles.addText}>
+              {ka.post.add}
+            </AppText>
+          </Pressable>
         </View>
 
         <CategoryPicker value={category} onChange={setCategory} allowAll />
+        <SubcategoryChips groups={groups} category={category} onChange={setCategory} />
 
-        {__DEV__ ? (
-          <View style={styles.list}>
-            <AppText muted style={styles.demoLabel}>
-              {ka.board.demo}
-            </AppText>
-            <PostCard
-              categorySlug="auto"
-              categoryName="ავტო მომსახურება · დიაგნოსტიკა"
-              body="მანქანა ძრავიდან უცნაურ ხმას გამოსცემს და ვერ გავიგე რა სჭირდება. ვინმეს თუ შეუძლია დახედვა, მადლობელი ვიქნები."
-              city="ბრუკლინი, ნიუ-იორკი"
-              budget="$80-მდე"
-              ago="2 საათის წინ"
-            />
-            <PostCard
-              categorySlug="care"
-              categoryName="ძიძა და მოვლა · ძიძა"
-              body="ვეძებ ქართულად მოლაპარაკე ძიძას 4 წლის ბავშვისთვის, კვირაში 3 დღე, საღამოს 5-დან 9 საათამდე."
-              city="სტეიტენ აილენდი"
-              ago="გუშინ"
-            />
+        {failed ? (
+          <View style={styles.center}>
+            <AppText muted>{ka.post.loadFailed}</AppText>
+            <AppButton variant="secondary" title={ka.retry} onPress={load} />
           </View>
-        ) : (
-          <View style={styles.empty}>
+        ) : items === null ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.accent} />
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.center}>
             <View style={styles.emptyIcon}>
               <MaterialCommunityIcons name="clipboard-text-outline" size={36} color={colors.accent} />
             </View>
@@ -63,6 +92,27 @@ export default function BoardScreen() {
             <AppText muted style={styles.emptyText}>
               {ka.board.emptyText}
             </AppText>
+            <AppButton title={ka.post.newTitle} onPress={() => router.push('/post/new')} />
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {items.map((p) => {
+              const cat = describeCategory(groups, p.category_id);
+              return (
+                <PostCard
+                  key={p.id}
+                  categorySlug={cat.slug}
+                  categoryName={cat.label}
+                  body={p.body}
+                  city={p.city}
+                  budget={p.budget_note}
+                  ago={timeAgo(p.created_at)}
+                  author={p.author_name}
+                  mineLabel={p.author_id === session?.user.id ? ka.post.mine : undefined}
+                  onPress={() => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
+                />
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -72,12 +122,23 @@ export default function BoardScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  flex: { flex: 1 },
   content: { padding: 20, gap: 20 },
-  header: { gap: 4 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   title: { fontSize: 28, lineHeight: 38 },
+  add: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  addText: { color: colors.onAccent, fontSize: 14, lineHeight: 20 },
   list: { gap: 12 },
-  demoLabel: { fontSize: 12, lineHeight: 16, textAlign: 'center' },
-  empty: { alignItems: 'center', gap: 12, paddingTop: 48, paddingHorizontal: 16 },
+  center: { alignItems: 'center', gap: 12, paddingTop: 32, paddingHorizontal: 16 },
   emptyIcon: {
     width: 80,
     height: 80,

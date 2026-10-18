@@ -90,6 +90,7 @@ export async function reportUser(input: {
   reporterId: string;
   targetUserId: string;
   conversationId?: string | null;
+  postId?: string | null;
   reason: ReportReason;
   details?: string;
 }): Promise<void> {
@@ -97,6 +98,7 @@ export async function reportUser(input: {
     reporter_id: input.reporterId,
     target_user_id: input.targetUserId,
     conversation_id: input.conversationId ?? null,
+    post_id: input.postId ?? null,
     reason: input.reason,
     details: input.details?.trim() ? input.details.trim().slice(0, 500) : null,
   });

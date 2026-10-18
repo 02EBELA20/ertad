@@ -109,6 +109,13 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
+      <Pressable style={styles.cta} onPress={() => router.push('/my-posts')} accessibilityRole="button">
+        <View style={styles.specText}>
+          <AppText weight="bold">{ka.post.myPosts}</AppText>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.accent} />
+      </Pressable>
+
       <View style={styles.actions}>
         {error ? <AppText style={styles.error}>{error}</AppText> : null}
         <AppButton variant="secondary" title={ka.profile.signOut} onPress={signOut} disabled={busy} />

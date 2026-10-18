@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { AppText } from '@/components/AppText';
 import { AppButton } from '@/components/AppButton';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { SubcategoryChips } from '@/components/SubcategoryChips';
 import { ProviderCard } from '@/components/ProviderCard';
 import { useCategories } from '@/lib/categories';
 import { fetchProviders, ProviderListItem } from '@/lib/provider';
@@ -33,12 +34,6 @@ export default function ProfessionalsScreen() {
     const g = groups.find((x) => x.parent.id === category);
     return g ? [g.parent.id, ...g.children.map((c) => c.id)] : [category];
   }, [category, groups]);
-
-  // The main category currently in focus (for the subcategory chips).
-  const activeGroup = useMemo(
-    () => groups.find((g) => g.parent.id === category || g.children.some((c) => c.id === category)) ?? null,
-    [category, groups],
-  );
 
   const names = useMemo(() => {
     const m = new Map<string, string>();
@@ -84,27 +79,7 @@ export default function ProfessionalsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <CategoryPicker value={category} onChange={setCategory} allowAll />
 
-        {activeGroup && activeGroup.children.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-            {[{ id: activeGroup.parent.id, name_ka: ka.professionals.allInCategory }, ...activeGroup.children].map(
-              (c) => {
-                const on = category === c.id;
-                return (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => setCategory(c.id)}
-                    style={[styles.chip, on && styles.chipOn]}
-                    accessibilityRole="button"
-                  >
-                    <AppText weight="medium" style={[styles.chipText, on && { color: colors.onAccent }]}>
-                      {c.name_ka}
-                    </AppText>
-                  </Pressable>
-                );
-              },
-            )}
-          </ScrollView>
-        ) : null}
+        <SubcategoryChips groups={groups} category={category} onChange={setCategory} />
 
         {failed ? (
           <View style={styles.center}>

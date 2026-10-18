@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { categoryIcon } from '@/lib/categoryIcons';
@@ -11,11 +11,24 @@ export type PostCardProps = {
   city: string;
   budget?: string | null;
   ago: string;
+  author?: string | null;
+  mineLabel?: string;
+  onPress?: () => void;
 };
 
-export function PostCard({ categorySlug, categoryName, body, city, budget, ago }: PostCardProps) {
+export function PostCard({
+  categorySlug,
+  categoryName,
+  body,
+  city,
+  budget,
+  ago,
+  author,
+  mineLabel,
+  onPress,
+}: PostCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable onPress={onPress} disabled={!onPress} style={styles.card} accessibilityRole="button">
       <View style={styles.top}>
         <View style={styles.icon}>
           <MaterialCommunityIcons name={categoryIcon(categorySlug)} size={24} color={colors.accent} />
@@ -25,7 +38,8 @@ export function PostCard({ categorySlug, categoryName, body, city, budget, ago }
             {categoryName}
           </AppText>
           <AppText muted style={styles.small}>
-            {ago}
+            {[author, ago].filter(Boolean).join(' · ')}
+            {mineLabel ? `  ·  ${mineLabel}` : ''}
           </AppText>
         </View>
         {budget ? (
@@ -47,7 +61,7 @@ export function PostCard({ categorySlug, categoryName, body, city, budget, ago }
           {city}
         </AppText>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
