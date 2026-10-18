@@ -25,8 +25,15 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
+          height: 72,
+          paddingTop: 8,
+          paddingBottom: 10,
         },
-        tabBarLabelStyle: { fontFamily: 'NotoSansGeorgian_500Medium', fontSize: 12 },
+        tabBarLabelStyle: {
+          fontFamily: 'NotoSansGeorgian_500Medium',
+          fontSize: 12,
+          lineHeight: 20,
+        },
       }}
     >
       <Tabs.Screen name="index" options={tab(ka.tabs.home, 'home-outline', 'home')} />
