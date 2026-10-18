@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,7 +12,12 @@ import { ka } from '@/i18n/ka';
 // Stage 3 skeleton of the board. Real posts arrive in stage 5.
 // The sample cards below are shown in development builds only, to judge the design.
 export default function BoardScreen() {
-  const [category, setCategory] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ category?: string }>();
+  const [category, setCategory] = useState<string | null>(params.category ?? null);
+
+  useEffect(() => {
+    if (params.category) setCategory(params.category);
+  }, [params.category]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
