@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
+import { CosmosBackground } from '@/components/cosmos/CosmosBackground';
 import { OrbitFeed } from '@/components/OrbitFeed';
 import { FeedItem, fetchHomeFeed } from '@/lib/feed';
 import { useCategories } from '@/lib/categories';
@@ -73,6 +74,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <CosmosBackground />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(19,28,46,0.72)',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(19,28,46,0.72)',
   },
   input: {
     flex: 1,
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(19,28,46,0.72)',
   },
   resultIcon: {
     width: 40,

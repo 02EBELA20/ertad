@@ -16,13 +16,13 @@ import { CategoryGroup } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { FeedItem } from '@/lib/feed';
 import { describeCategory } from '@/lib/posts';
+import { COSMOS, Glow } from '@/components/cosmos/Glow';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
 const MAX_SLOTS = 6;
 const AVATAR = 58;
 const TICK_MS = 4200;
-const GOLD_SOFT = 'rgba(217,164,65,0.28)';
 
 /**
  * Members orbit around a glowing ring. Every few seconds one of them is replaced by a new
@@ -136,8 +136,8 @@ export function OrbitFeed({
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const counter = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
-  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
-  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] });
+  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.5] });
+  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
 
   const positions = useMemo(
     () =>
@@ -153,7 +153,6 @@ export function OrbitFeed({
   const featured = slots[featuredIdx] ?? slots[0];
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
   const innerD = 2 * (R - AVATAR / 2 - 12);
-  const decor = R * 1.28;
 
   return (
     <View style={styles.wrap}>
@@ -162,34 +161,27 @@ export function OrbitFeed({
       </AppText>
 
       <View style={[styles.stage, { width: S, height: S }]}>
-        {/* soft glow disc and static rings */}
-        <View style={[styles.glowDisc, { width: S - 6, height: S - 6, borderRadius: S / 2 }]} />
-        <View style={[styles.ring, { width: S - 2, height: S - 2, borderRadius: S / 2, opacity: 0.35 }]} />
-        <View style={[styles.ring, styles.ringDashed, { width: R * 2, height: R * 2, borderRadius: R }]} />
-
-        {/* slow counter-rotating inner ring with sparks */}
+        {/* galaxy: core glow and slowly turning nebula arms (no lines, only light) */}
+        <View style={[styles.abs, { left: 0, top: 0, width: S, height: S, alignItems: 'center', justifyContent: 'center' }]}>
+          <Glow size={S * 1.05} color={COSMOS.violet} intensity={0.22} />
+        </View>
         <Animated.View
           pointerEvents="none"
-          style={[
-            styles.abs,
-            { width: decor, height: decor, left: S / 2 - decor / 2, top: S / 2 - decor / 2 },
-            { transform: [{ rotate: counter }] },
-          ]}
+          style={[styles.abs, { left: 0, top: 0, width: S, height: S, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: counter }] }]}
         >
-          <View style={[styles.ring, { width: decor, height: decor, borderRadius: decor / 2, opacity: 0.18 }]} />
-          {[0, 120, 240].map((deg) => (
-            <View
-              key={deg}
-              style={[
-                styles.spark,
-                {
-                  left: decor / 2 + (decor / 2) * Math.cos((deg * Math.PI) / 180) - 3,
-                  top: decor / 2 + (decor / 2) * Math.sin((deg * Math.PI) / 180) - 3,
-                },
-              ]}
-            />
+          {[
+            { deg: 0, color: COSMOS.violet },
+            { deg: 60, color: COSMOS.teal },
+            { deg: 120, color: COSMOS.magenta },
+          ].map((arm) => (
+            <View key={arm.deg} style={[styles.abs, { transform: [{ rotate: `${arm.deg}deg` }] }]}>
+              <Glow size={S * 0.98} squash={0.26} color={arm.color} intensity={0.3} />
+            </View>
           ))}
         </Animated.View>
+        <View style={[styles.abs, { left: 0, top: 0, width: S, height: S, alignItems: 'center', justifyContent: 'center' }]}>
+          <Glow size={innerD * 1.5} color={COSMOS.gold} intensity={0.28} />
+        </View>
 
         {/* the orbiting members */}
         <Animated.View style={[styles.abs, { width: S, height: S, transform: [{ rotate }] }]}>
@@ -199,13 +191,13 @@ export function OrbitFeed({
             const offer = item.kind === 'offer';
             return (
               <View key={i} style={[styles.abs, { left: positions[i].left, top: positions[i].top, width: AVATAR, height: AVATAR }]}>
+                <View style={[styles.abs, { left: -AVATAR * 0.65, top: -AVATAR * 0.65 }]}>
+                  <Glow size={AVATAR * 2.3} color={offer ? COSMOS.gold : COSMOS.blue} intensity={isFeatured ? 0.6 : 0.34} />
+                </View>
                 {isFeatured ? (
                   <Animated.View
                     pointerEvents="none"
-                    style={[
-                      styles.glowRing,
-                      { opacity: glowOpacity, transform: [{ scale: glowScale }, { rotate: counter }] },
-                    ]}
+                    style={[styles.pulseFill, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]}
                   />
                 ) : null}
                 <Animated.View style={{ transform: [{ rotate: counter }, { scale: scales[i] }] }}>
@@ -220,7 +212,7 @@ export function OrbitFeed({
                     <View
                       style={[
                         styles.avatarFrame,
-                        { borderColor: offer ? colors.accent : colors.text },
+                        { borderColor: offer ? 'rgba(217,164,65,0.9)' : 'rgba(210,225,255,0.9)' },
                         isFeatured && styles.avatarFeatured,
                       ]}
                     >
@@ -285,21 +277,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, lineHeight: 26, alignSelf: 'flex-start' },
   stage: { alignItems: 'center', justifyContent: 'center' },
   abs: { position: 'absolute' },
-  glowDisc: {
-    position: 'absolute',
-    backgroundColor: 'rgba(217,164,65,0.05)',
-    boxShadow: '0 0 60px rgba(217,164,65,0.18)',
-  },
-  ring: { position: 'absolute', borderWidth: 1, borderColor: colors.accent },
-  ringDashed: { borderStyle: 'dashed', opacity: 0.4 },
-  spark: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accent,
-    opacity: 0.8,
-  },
   avatarFrame: {
     width: AVATAR,
     height: AVATAR,
@@ -313,15 +290,14 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     boxShadow: '0 0 18px rgba(217,164,65,0.7)',
   },
-  glowRing: {
+  pulseFill: {
     position: 'absolute',
     left: 0,
     top: 0,
     width: AVATAR,
     height: AVATAR,
     borderRadius: AVATAR / 2,
-    borderWidth: 2,
-    borderColor: colors.accent,
+    backgroundColor: colors.accent,
   },
   badge: {
     position: 'absolute',
@@ -340,10 +316,11 @@ const styles = StyleSheet.create({
   center: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(8,13,26,0.84)',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(255,255,255,0.10)',
     padding: 10,
+    boxShadow: '0 0 40px rgba(217,164,65,0.22)',
   },
   centerInner: { alignItems: 'center', gap: 3, maxWidth: '100%' },
   centerIcon: {
@@ -352,9 +329,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: GOLD_SOFT,
+    backgroundColor: 'rgba(217,164,65,0.12)',
   },
   centerName: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
   centerKind: { fontSize: 12, lineHeight: 17, textAlign: 'center', color: colors.accent },
