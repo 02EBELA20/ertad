@@ -3,8 +3,8 @@ import { StyleProp, View, ViewStyle } from 'react-native';
 type RGB = [number, number, number];
 
 /**
- * A soft radial glow made of stacked translucent circles (no gradient library needed).
- * `intensity` is the opacity at the very centre (0-1).
+ * A soft glow made from one blurred shadow (smooth, no visible rings).
+ * `intensity` is roughly the opacity at the centre (0-1).
  */
 export function Glow({
   size,
@@ -20,27 +20,22 @@ export function Glow({
   squash?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const LAYERS = 8;
-  const h = size * squash;
+  const [r, g, b] = color;
+  const core = size * 0.3;
   return (
-    <View pointerEvents="none" style={[{ width: size, height: h, alignItems: 'center', justifyContent: 'center' }, style]}>
-      {Array.from({ length: LAYERS }, (_, i) => {
-        const k = 1 - i / LAYERS; // 1 -> small
-        const w = size * k;
-        const hh = h * k;
-        return (
-          <View
-            key={i}
-            style={{
-              position: 'absolute',
-              width: w,
-              height: hh,
-              borderRadius: Math.max(w, hh) / 2,
-              backgroundColor: `rgba(${color[0]},${color[1]},${color[2]},${(intensity / LAYERS) * 1.6})`,
-            }}
-          />
-        );
-      })}
+    <View
+      pointerEvents="none"
+      style={[{ width: size, height: size * squash, alignItems: 'center', justifyContent: 'center' }, style]}
+    >
+      <View
+        style={{
+          width: core,
+          height: Math.max(2, core * squash),
+          borderRadius: 999,
+          backgroundColor: `rgba(${r},${g},${b},${intensity * 0.6})`,
+          boxShadow: `0 0 ${size * 0.4}px ${size * 0.17}px rgba(${r},${g},${b},${intensity})`,
+        }}
+      />
     </View>
   );
 }
