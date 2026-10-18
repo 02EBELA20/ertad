@@ -1,10 +1,10 @@
-import { StyleProp, View, ViewStyle } from 'react-native';
+import { Platform, StyleProp, View, ViewStyle } from 'react-native';
 
 type RGB = [number, number, number];
 
 /**
- * A soft glow made from one blurred shadow (smooth, no visible rings).
- * `intensity` is roughly the opacity at the centre (0-1).
+ * A soft radial glow drawn with a CSS/RN radial gradient (perfectly smooth, no rings).
+ * `intensity` is the opacity at the centre (0-1); `squash` < 1 makes it an ellipse.
  */
 export function Glow({
   size,
@@ -16,28 +16,14 @@ export function Glow({
   size: number;
   color: RGB;
   intensity?: number;
-  /** height / width ratio; below 1 makes a soft ellipse */
   squash?: number;
   style?: StyleProp<ViewStyle>;
 }) {
   const [r, g, b] = color;
-  const core = size * 0.3;
-  return (
-    <View
-      pointerEvents="none"
-      style={[{ width: size, height: size * squash, alignItems: 'center', justifyContent: 'center' }, style]}
-    >
-      <View
-        style={{
-          width: core,
-          height: Math.max(2, core * squash),
-          borderRadius: 999,
-          backgroundColor: `rgba(${r},${g},${b},${intensity * 0.6})`,
-          boxShadow: `0 0 ${size * 0.4}px ${size * 0.17}px rgba(${r},${g},${b},${intensity})`,
-        }}
-      />
-    </View>
-  );
+  const c = (a: number) => `rgba(${r},${g},${b},${a.toFixed(3)})`;
+  const gradient = `radial-gradient(ellipse closest-side, ${c(intensity)} 0%, ${c(intensity * 0.55)} 30%, ${c(intensity * 0.2)} 60%, ${c(0)} 100%)`;
+  const bg = Platform.OS === 'web' ? { backgroundImage: gradient } : { experimental_backgroundImage: gradient };
+  return <View pointerEvents="none" style={[{ width: size, height: size * squash }, bg as ViewStyle, style]} />;
 }
 
 export const COSMOS = {

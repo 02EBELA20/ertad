@@ -21,27 +21,26 @@ import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
 const MAX_SLOTS = 6;
-const AVATAR = 56;
+const AVATAR = 54;
 const TICK_MS = 4200;
-const PERIOD = 42000;
+const PERIOD = 36000;
 const STEPS = 48;
+const TILT = -7; // degrees, a slight tilt makes the ring feel like a real 3D plane
+const RY = 0.42;
 
-// Two crossing, tilted orbits (like an atom): three members on each, opposite directions.
-const ORBITS = [
-  { tilt: -17, dir: 1, ry: 0.36, r: 1 },
-  { tilt: 17, dir: -1, ry: 0.36, r: 0.93 },
-];
-function slotOrbit(i: number) {
-  const o = ORBITS[i % 2];
-  const phase = Math.floor(i / 2) / 3 + (i % 2) * 0.17;
-  return { ...o, phase };
+function phaseOf(i: number) {
+  return i / MAX_SLOTS;
+}
+/** Depth of slot i at time fraction u: -1 far (back) .. +1 near (front, in front of the planet). */
+function depthAt(i: number, u: number) {
+  return Math.sin(2 * Math.PI * (u + phaseOf(i)));
 }
 
 /**
- * Members travel on two tilted, crossing 3D orbits around a glowing planet. Depth is faked:
- * members at the back are smaller and dimmer, members at the front larger and brighter.
- * Every few seconds one is replaced by a new member (taken in turn from the pool the server
- * picked fairly); the card below introduces whoever is selected.
+ * A 3D ring of people turning around a glowing planet, like a carousel seen from slightly
+ * above. Whoever is at the front is the one being introduced in the card below. Members at
+ * the back are small and dim; when one is at the back, it may be swapped for a new member
+ * (taken in turn from the pool the server picked fairly) without anyone noticing.
  */
 export function OrbitFeed({
   items,
@@ -55,7 +54,7 @@ export function OrbitFeed({
   const { width } = useWindowDimensions();
   const S = Math.min(width - 32, 400);
   const RX = S / 2 - AVATAR / 2 - 4;
-  const H = S * 0.82;
+  const H = S * 0.66;
   const slotsCount = Math.min(MAX_SLOTS, items.length);
 
   const [active, setActive] = useState(true);
@@ -63,6 +62,8 @@ export function OrbitFeed({
   const [slots, setSlots] = useState<FeedItem[]>([]);
   const [featuredIdx, setFeaturedIdx] = useState(0);
   const [zs, setZs] = useState<number[]>(() => Array(MAX_SLOTS).fill(1));
+  const lastSwap = useRef(Date.now());
+  const featuredRef = useRef(0);
 
   const slotsRef = useRef<FeedItem[]>([]);
   const queueRef = useRef<FeedItem[]>([]);
@@ -91,6 +92,7 @@ export function OrbitFeed({
     slotsRef.current = items.slice(0, slotsCount);
     queueRef.current = items.slice(slotsCount);
     tickRef.current = 0;
+    lastSwap.current = Date.now();
     setSlots(slotsRef.current.slice());
     setFeaturedIdx(0);
     scales.forEach((v) => v.setValue(0));
@@ -125,73 +127,66 @@ export function OrbitFeed({
     };
   }, [active, reduceMotion, slotsCount, spin, breathe]);
 
-  // Layering: whoever is nearer to the viewer is drawn on top (checked a few times a second).
-  useEffect(() => {
-    if (!active || reduceMotion || slotsCount === 0) return;
-    const id = setInterval(() => {
-      const u = ((Date.now() - t0.current) % PERIOD) / PERIOD;
-      const next = Array.from({ length: MAX_SLOTS }, (_, i) => {
-        const o = slotOrbit(i);
-        const d = Math.sin(2 * Math.PI * (o.dir * u + o.phase));
-        return Math.round((d + 1) * 50) + 1;
-      });
-      setZs((prev) => (prev.every((v, i) => Math.abs(v - next[i]) < 4) ? prev : next));
-    }, 250);
-    return () => clearInterval(id);
-  }, [active, reduceMotion, slotsCount]);
-
   function showFeatured(idx: number) {
+    featuredRef.current = idx;
     fade.setValue(0);
     setFeaturedIdx(idx);
-    Animated.timing(fade, { toValue: 1, duration: 450, useNativeDriver: true }).start();
+    Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
   }
 
-  // Every few seconds: swap one member for a new one and introduce them.
+  // Several times a second: layering, who is at the front, and quiet swaps at the back.
   useEffect(() => {
     if (!active || slotsCount === 0) return;
-    const timer = setInterval(() => {
-      const k = tickRef.current % slotsCount;
-      tickRef.current += 1;
-      if (queueRef.current.length === 0) {
-        showFeatured(k);
-        return;
+    const id = setInterval(() => {
+      const u = reduceMotion ? 0 : ((Date.now() - t0.current) % PERIOD) / PERIOD;
+      const depths = Array.from({ length: MAX_SLOTS }, (_, i) => depthAt(i, u));
+      const next = depths.map((d) => Math.round((d + 1) * 50) + 1);
+      setZs((prev) => (prev.every((v, i) => Math.abs(v - next[i]) < 4) ? prev : next));
+
+      // front-most member is the featured one
+      let front = 0;
+      let back = 0;
+      for (let i = 0; i < slotsCount; i++) {
+        if (depths[i] > depths[front]) front = i;
+        if (depths[i] < depths[back]) back = i;
       }
-      Animated.timing(scales[k], { toValue: 0, duration: 300, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(
-        () => {
+      if (front !== featuredRef.current) showFeatured(front);
+
+      // swap whoever sits at the very back for a new member
+      if (!reduceMotion && queueRef.current.length > 0 && depths[back] < -0.85 && Date.now() - lastSwap.current > TICK_MS) {
+        lastSwap.current = Date.now();
+        const k = back;
+        Animated.timing(scales[k], { toValue: 0, duration: 260, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(() => {
           const incoming = queueRef.current.shift()!;
           queueRef.current.push(slotsRef.current[k]);
           slotsRef.current[k] = incoming;
           setSlots(slotsRef.current.slice());
-          showFeatured(k);
-          Animated.spring(scales[k], { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }).start();
-        },
-      );
-    }, TICK_MS);
-    return () => clearInterval(timer);
+          Animated.spring(scales[k], { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }).start();
+        });
+      }
+    }, 140);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, slotsCount, signature]);
+  }, [active, reduceMotion, slotsCount, signature]);
 
   // Pre-computed keyframes of every orbit position: x, y, depth scale, depth opacity.
   const tracks = useMemo(() => {
     const input = Array.from({ length: STEPS + 1 }, (_, k) => k / STEPS);
+    const T = (TILT * Math.PI) / 180;
     return Array.from({ length: MAX_SLOTS }, (_, i) => {
-      const o = slotOrbit(i);
-      const T = (o.tilt * Math.PI) / 180;
-      const rx = RX * o.r;
-      const ry = rx * o.ry;
       const xs: number[] = [];
       const ys: number[] = [];
       const sc: number[] = [];
       const op: number[] = [];
       for (let k = 0; k <= STEPS; k++) {
-        const th = 2 * Math.PI * (o.dir * (k / STEPS) + o.phase);
-        const x0 = rx * Math.cos(th);
-        const y0 = ry * Math.sin(th);
+        const th = 2 * Math.PI * (k / STEPS + phaseOf(i));
+        const x0 = RX * Math.cos(th);
+        const y0 = RX * RY * Math.sin(th);
         const d = (Math.sin(th) + 1) / 2; // 0 far .. 1 near
         xs.push(x0 * Math.cos(T) - y0 * Math.sin(T));
         ys.push(x0 * Math.sin(T) + y0 * Math.cos(T));
-        sc.push(0.58 + 0.5 * d);
-        op.push(0.5 + 0.5 * d);
+        sc.push(0.5 + 0.72 * d);
+        op.push(0.45 + 0.55 * d);
       }
       return { input, xs, ys, sc, op };
     });
@@ -203,7 +198,7 @@ export function OrbitFeed({
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
   const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
-  const PLANET = 74;
+  const PLANET = 78;
 
   return (
     <View style={styles.wrap}>
@@ -212,14 +207,15 @@ export function OrbitFeed({
       </AppText>
 
       <View style={{ width: S, height: H, alignItems: 'center', justifyContent: 'center' }}>
-        {/* soft light along both orbits (no lines) and a halo around the planet */}
-        {ORBITS.map((o) => (
-          <View key={o.tilt} style={[styles.abs, { transform: [{ rotate: `${o.tilt}deg` }] }]}>
-            <Glow size={S * 0.98} squash={0.34} color={o.dir > 0 ? COSMOS.violet : COSMOS.teal} intensity={0.2} />
-          </View>
-        ))}
+        {/* the orbit plane glows softly (no lines) and the planet has a warm halo */}
+        <View style={[styles.abs, { transform: [{ rotate: `${TILT}deg` }] }]}>
+          <Glow size={S * 1.04} squash={0.5} color={COSMOS.violet} intensity={0.42} />
+        </View>
+        <View style={[styles.abs, { transform: [{ rotate: `${TILT}deg` }] }]}>
+          <Glow size={S * 0.8} squash={0.34} color={COSMOS.teal} intensity={0.22} />
+        </View>
         <Animated.View style={[styles.abs, { opacity: planetGlow }]}>
-          <Glow size={PLANET * 3.4} color={COSMOS.gold} intensity={0.32} />
+          <Glow size={PLANET * 3.6} color={COSMOS.gold} intensity={0.5} />
         </Animated.View>
 
         {/* the planet */}
@@ -246,7 +242,7 @@ export function OrbitFeed({
                 {
                   width: AVATAR,
                   height: AVATAR,
-                  zIndex: isFeatured ? 100 : zs[i],
+                  zIndex: zs[i],
                   opacity: Animated.multiply(depthOpacity, scales[i]),
                   transform: [
                     { translateX: reduceMotion ? tr.xs[0] : x },
@@ -257,10 +253,7 @@ export function OrbitFeed({
               ]}
             >
               <Pressable
-                onPress={() => {
-                  tickRef.current = i + 1;
-                  showFeatured(i);
-                }}
+                onPress={() => onOpen(item)}
                 accessibilityRole="button"
                 accessibilityLabel={item.title ?? ''}
               >
@@ -269,7 +262,7 @@ export function OrbitFeed({
                     styles.avatarFrame,
                     {
                       borderColor: accent,
-                      boxShadow: isFeatured ? `0 0 26px 4px ${accent}` : `0 0 14px rgba(120,140,255,0.45)`,
+                      boxShadow: isFeatured ? `0 0 22px 3px ${accent}` : `0 0 12px rgba(120,140,255,0.4)`,
                     },
                     isFeatured && { borderWidth: 3 },
                   ]}
