@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { CosmosBackground } from '@/components/cosmos/CosmosBackground';
 import { OrbitFeed } from '@/components/OrbitFeed';
@@ -78,8 +78,11 @@ export default function HomeScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <View style={styles.spark}>
-              <MaterialCommunityIcons name="auto-fix" size={26} color={colors.accent} />
+            <View style={styles.brand}>
+              <Image source={require('../../assets/images/georgia-usa.png')} style={{ width: 46, height: 25 }} resizeMode="contain" />
+              <AppText weight="bold" style={styles.brandName}>
+                {ka.home.appName}
+              </AppText>
             </View>
             <AppText weight="bold" style={styles.title}>
               {ka.home.title}
@@ -122,6 +125,21 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
+          <View style={styles.twoButtons}>
+            <Pressable onPress={() => open(null)} style={[styles.bigBtn, styles.bigBtnPrimary]} accessibilityRole="button">
+              <Ionicons name="search" size={20} color={colors.onAccent} />
+              <AppText weight="bold" style={styles.bigBtnPrimaryText}>
+                {ka.home.need}
+              </AppText>
+            </Pressable>
+            <Pressable onPress={() => router.push('/become-specialist')} style={[styles.bigBtn, styles.bigBtnGhost]} accessibilityRole="button">
+              <Ionicons name="hand-left-outline" size={20} color={colors.accent} />
+              <AppText weight="bold" style={styles.bigBtnGhostText}>
+                {ka.home.can}
+              </AppText>
+            </Pressable>
+          </View>
+
           {(results && results.length === 0) || failed ? (
             <View style={styles.block}>
               <AppText muted>{failed ? ka.home.failed : ka.home.noMatch}</AppText>
@@ -150,18 +168,6 @@ export default function HomeScreen() {
             />
           ) : null}
 
-          <View style={styles.footer}>
-            <Pressable onPress={() => open(null)} accessibilityRole="button">
-              <AppText style={[styles.linkText, { color: colors.accent }]}>
-                {ka.home.browseAll}
-              </AppText>
-            </Pressable>
-            <Pressable onPress={() => router.push('/become-specialist')} accessibilityRole="button">
-              <AppText style={[styles.linkText, { color: colors.accent }]}>
-                {ka.home.canDo}
-              </AppText>
-            </Pressable>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -171,8 +177,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
-  content: { padding: 20, paddingTop: 32, gap: 24 },
-  hero: { gap: 10, alignItems: 'center' },
+  content: { padding: 20, paddingTop: 10, gap: 14 },
+  hero: { gap: 4, alignItems: 'center' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  brandName: { fontSize: 18, lineHeight: 26, color: 'rgba(240,215,160,0.95)', letterSpacing: 0.5 },
   spark: {
     width: 52,
     height: 52,
@@ -183,8 +191,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 30, lineHeight: 42, textAlign: 'center', color: colors.accent },
-  heroHint: { textAlign: 'center', color: 'rgba(240,215,160,0.85)', fontSize: 15, lineHeight: 22, maxWidth: 320 },
+  title: { fontSize: 25, lineHeight: 34, textAlign: 'center', color: colors.accent },
+  heroHint: { textAlign: 'center', color: 'rgba(240,215,160,0.85)', fontSize: 14, lineHeight: 20, maxWidth: 320 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -198,7 +206,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 56,
+    minHeight: 48,
     maxHeight: 140,
     paddingTop: 12,
     paddingBottom: 8,
@@ -218,6 +226,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   sendOff: { opacity: 0.4 },
+  twoButtons: { flexDirection: 'row', gap: 12 },
+  bigBtn: {
+    flex: 1,
+    height: 54,
+    borderRadius: 27,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  bigBtnPrimary: { backgroundColor: colors.accent, boxShadow: '0 0 22px rgba(217,164,65,0.45)' },
+  bigBtnGhost: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: 'rgba(19,28,46,0.6)' },
+  bigBtnPrimaryText: { color: colors.onAccent, fontSize: 17, lineHeight: 24 },
+  bigBtnGhostText: { color: colors.accent, fontSize: 17, lineHeight: 24 },
   block: { gap: 10 },
   small: { fontSize: 13, lineHeight: 18 },
   result: {

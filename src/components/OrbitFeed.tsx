@@ -55,7 +55,7 @@ export function OrbitFeed({
   const { width } = useWindowDimensions();
   const S = Math.min(width - 32, 400);
   const RX = S / 2 - AVATAR / 2 - 4;
-  const H = S * 0.72;
+  const H = S * 0.64;
   const slotsCount = Math.min(MAX_SLOTS, items.length);
 
   const [active, setActive] = useState(true);
@@ -353,7 +353,7 @@ export function OrbitFeed({
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: 8, alignSelf: 'stretch' },
-  title: { fontSize: 20, lineHeight: 28, alignSelf: 'center', textAlign: 'center', color: colors.accent, marginTop: 4 },
+  title: { fontSize: 18, lineHeight: 26, alignSelf: 'center', textAlign: 'center', color: colors.accent },
   abs: { position: 'absolute' },
   planet: {
     position: 'absolute',
