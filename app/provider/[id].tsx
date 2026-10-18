@@ -9,6 +9,8 @@ import { Avatar } from '@/components/Avatar';
 import { useCategories } from '@/lib/categories';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { fetchProvider, ProviderDetail } from '@/lib/provider';
+import { startConversation } from '@/lib/chat';
+import { useAuth } from '@/auth/AuthProvider';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -42,6 +44,9 @@ export default function ProviderScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { groups } = useCategories();
+  const { session } = useAuth();
+  const [opening, setOpening] = useState(false);
+  const [chatError, setChatError] = useState(false);
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading');
 
@@ -79,6 +84,21 @@ export default function ProviderScreen() {
     else router.replace('/professionals');
   }
 
+  async function openChat() {
+    if (!provider || opening) return;
+    setOpening(true);
+    setChatError(false);
+    try {
+      const cid = await startConversation(provider.user_id);
+      router.push({ pathname: '/chat/[id]', params: { id: cid } });
+    } catch {
+      setChatError(true);
+    } finally {
+      setOpening(false);
+    }
+  }
+
+  const isMe = provider?.user_id === session?.user.id;
   const digits = provider?.contact_phone.replace(/\D/g, '') ?? '';
 
   return (
@@ -118,8 +138,14 @@ export default function ProviderScreen() {
               label={ka.provider.whatsapp}
               onPress={() => Linking.openURL(`https://wa.me/${digits}`)}
             />
-            <ActionButton icon="chat-outline" label={`${ka.provider.chat} · ${ka.provider.chatSoon}`} disabled />
+            <ActionButton
+              icon="chat-outline"
+              label={ka.provider.chat}
+              onPress={openChat}
+              disabled={isMe || opening}
+            />
           </View>
+          {chatError ? <AppText style={styles.chatError}>{ka.chat.openFailed}</AppText> : null}
 
           <View style={styles.chips}>
             {labels.map((l) => (
@@ -191,5 +217,6 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 13, lineHeight: 20 },
   section: { gap: 6 },
+  chatError: { color: colors.danger, textAlign: 'center' },
   small: { fontSize: 13, lineHeight: 18 },
 });
