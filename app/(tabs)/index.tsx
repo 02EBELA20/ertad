@@ -4,9 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
-import { FeedCard } from '@/components/FeedCard';
+import { OrbitFeed } from '@/components/OrbitFeed';
 import { FeedItem, fetchHomeFeed } from '@/lib/feed';
-import { describeCategory } from '@/lib/posts';
 import { useCategories } from '@/lib/categories';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
@@ -26,7 +25,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      fetchHomeFeed(6)
+      fetchHomeFeed(12)
         .then((items) => alive && setFeed(items))
         .catch(() => alive && setFeed([]));
       return () => {
@@ -138,34 +137,15 @@ export default function HomeScreen() {
           ) : null}
 
           {feed.length > 0 ? (
-            <View style={styles.block}>
-              <AppText weight="bold" style={styles.feedTitle}>
-                {ka.feed.title}
-              </AppText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.feedRow}>
-                {feed.map((item) => {
-                  const cat = item.category_id ? describeCategory(groups, item.category_id) : { label: '', slug: '' };
-                  return (
-                    <FeedCard
-                      key={`${item.kind}-${item.ref_id}`}
-                      kind={item.kind}
-                      name={item.title || '—'}
-                      photoPath={item.photo}
-                      categorySlug={cat.slug}
-                      categoryLabel={cat.label}
-                      city={item.city}
-                      snippet={item.snippet}
-                      demo={item.is_demo}
-                      onPress={() =>
-                        item.kind === 'offer'
-                          ? router.push({ pathname: '/provider/[id]', params: { id: item.ref_id } })
-                          : router.push({ pathname: '/post/[id]', params: { id: item.ref_id } })
-                      }
-                    />
-                  );
-                })}
-              </ScrollView>
-            </View>
+            <OrbitFeed
+              items={feed}
+              groups={groups}
+              onOpen={(item) =>
+                item.kind === 'offer'
+                  ? router.push({ pathname: '/provider/[id]', params: { id: item.ref_id } })
+                  : router.push({ pathname: '/post/[id]', params: { id: item.ref_id } })
+              }
+            />
           ) : null}
 
           <View style={styles.footer}>
@@ -257,7 +237,5 @@ const styles = StyleSheet.create({
   },
   link: { paddingVertical: 4 },
   linkText: { fontSize: 15, lineHeight: 22, textDecorationLine: 'underline' },
-  feedTitle: { fontSize: 18, lineHeight: 26 },
-  feedRow: { gap: 12, paddingRight: 20 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 },
 });
