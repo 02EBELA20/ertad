@@ -17,7 +17,7 @@ import { categoryIcon } from '@/lib/categoryIcons';
 import { FeedItem } from '@/lib/feed';
 import { describeCategory } from '@/lib/posts';
 import { COSMOS, Glow } from '@/components/cosmos/Glow';
-import { FlagPlanet } from '@/components/cosmos/FlagPlanet';
+import { FlagPlanet, PlanetRing } from '@/components/cosmos/FlagPlanet';
 import { colors } from '@/theme/colors';
 import { ka } from '@/i18n/ka';
 
@@ -27,7 +27,7 @@ const TICK_MS = 4200;
 const PERIOD = 36000;
 const STEPS = 48;
 const TILT = -7; // degrees, a slight tilt makes the ring feel like a real 3D plane
-const RY = 0.42;
+const RY = 0.5;
 
 function phaseOf(i: number) {
   return i / MAX_SLOTS;
@@ -55,7 +55,7 @@ export function OrbitFeed({
   const { width } = useWindowDimensions();
   const S = Math.min(width - 32, 400);
   const RX = S / 2 - AVATAR / 2 - 4;
-  const H = S * 0.66;
+  const H = S * 0.72;
   const slotsCount = Math.min(MAX_SLOTS, items.length);
 
   const [active, setActive] = useState(true);
@@ -75,6 +75,7 @@ export function OrbitFeed({
   const fade = useRef(new Animated.Value(1)).current;
   const breathe = useRef(new Animated.Value(0)).current;
   const boost = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
+  const pop = useRef(new Animated.Value(1)).current;
   const sway = useRef(new Animated.Value(0)).current;
   const scales = useRef(Array.from({ length: MAX_SLOTS }, () => new Animated.Value(1))).current;
 
@@ -142,6 +143,8 @@ export function OrbitFeed({
     featuredRef.current = idx;
     boost.forEach((v, k) => Animated.spring(v, { toValue: k === idx ? 1.14 : 1, friction: 6, tension: 60, useNativeDriver: true }).start());
     fade.setValue(0);
+    pop.setValue(0);
+    Animated.spring(pop, { toValue: 1, friction: 6, tension: 70, useNativeDriver: true }).start();
     setFeaturedIdx(idx);
     Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
   }
@@ -209,7 +212,7 @@ export function OrbitFeed({
     const input = Array.from({ length: STEPS + 1 }, (_, k) => k / STEPS);
     const T = (TILT * Math.PI) / 180;
     return Array.from({ length: MAX_SLOTS }, (_, i) =>
-      [0.012, 0.026, 0.042].map((lag) => {
+      [0.012, 0.026, 0.042, 0.06].map((lag) => {
         const xs: number[] = [];
         const ys: number[] = [];
         const op: number[] = [];
@@ -233,7 +236,7 @@ export function OrbitFeed({
   const fCat = featured?.category_id ? describeCategory(groups, featured.category_id) : { label: '', slug: '' };
   const planetScale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   const planetGlow = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] });
-  const PLANET = 78;
+  const PLANET = 88;
 
   return (
     <View style={styles.wrap}>
@@ -250,11 +253,37 @@ export function OrbitFeed({
           <Glow size={S * 0.8} squash={0.34} color={COSMOS.teal} intensity={0.22} />
         </View>
         <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 2.5, top: H / 2 - PLANET * 1.6 }]}>
-          <Glow size={PLANET * 3.2} color={[215, 38, 46]} intensity={0.34} />
+          <Glow size={PLANET * 3.4} color={[215, 38, 46]} intensity={0.6} />
         </Animated.View>
         <Animated.View style={[styles.abs, { opacity: planetGlow, left: S / 2 - PLANET * 0.7, top: H / 2 - PLANET * 1.6 }]}>
-          <Glow size={PLANET * 3.2} color={[70, 100, 255]} intensity={0.34} />
+          <Glow size={PLANET * 3.4} color={[70, 100, 255]} intensity={0.6} />
         </Animated.View>
+
+        {/* soft glowing track of the orbit */}
+        <View
+          pointerEvents="none"
+          style={[
+            styles.abs,
+            {
+              width: RX * 2,
+              height: RX * 2 * RY,
+              borderRadius: RX,
+              borderWidth: 1,
+              borderColor: 'rgba(150,170,255,0.2)',
+              boxShadow: '0 0 18px rgba(120,140,255,0.28), inset 0 0 18px rgba(120,140,255,0.16)',
+              transform: [{ rotate: `${TILT}deg` }],
+            },
+          ]}
+        />
+        {/* slowly turning light rays behind the planet */}
+        <Animated.View pointerEvents="none" style={[styles.abs, { transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]}>
+          {[0, 45, 90, 135].map((d) => (
+            <View key={d} style={[styles.abs, { left: -PLANET * 1.7, top: -PLANET * 0.25, transform: [{ rotate: `${d}deg` }] }]}>
+              <Glow size={PLANET * 3.4} squash={0.16} color={[255, 225, 160]} intensity={0.45} />
+            </View>
+          ))}
+        </Animated.View>
+        <PlanetRing size={PLANET} half="back" />
 
         {/* the planet: Georgia and America joined in one globe */}
         <Animated.View style={[styles.planet, { width: PLANET, height: PLANET, transform: [{ scale: planetScale }], zIndex: 50 }]}>
@@ -263,6 +292,8 @@ export function OrbitFeed({
             sway={sway.interpolate({ inputRange: [0, 1], outputRange: [-7, 7] })}
           />
         </Animated.View>
+
+        <PlanetRing size={PLANET} half="front" />
 
         {/* the orbiting members */}
         {slots.map((item, i) => {
@@ -360,9 +391,19 @@ export function OrbitFeed({
       >
         {featured ? (
           <Animated.View style={[styles.cardInner, { opacity: fade }]}>
-            <View style={styles.cardIcon}>
-              <MaterialCommunityIcons name={categoryIcon(fCat.slug)} size={22} color={colors.accent} />
-            </View>
+            <Animated.View
+              style={[
+                styles.cardAvatar,
+                {
+                  transform: [
+                    { translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [-90, 0] }) },
+                    { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
+                  ],
+                },
+              ]}
+            >
+              <Avatar path={featured.photo} size={48} />
+            </Animated.View>
             <View style={styles.cardText}>
               <AppText weight="bold" numberOfLines={1} style={styles.cardName}>
                 {featured.title || '—'}
@@ -388,7 +429,7 @@ export function OrbitFeed({
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: 8, alignSelf: 'stretch' },
-  title: { fontSize: 18, lineHeight: 26, alignSelf: 'flex-start' },
+  title: { fontSize: 20, lineHeight: 28, alignSelf: 'center', textAlign: 'center', color: colors.accent, marginTop: 4 },
   abs: { position: 'absolute' },
   planet: {
     position: 'absolute',
@@ -429,6 +470,17 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   cardInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 2,
+    borderColor: 'rgba(217,164,65,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bg,
+    boxShadow: '0 0 18px 2px rgba(217,164,65,0.6)',
+  },
   cardIcon: {
     width: 44,
     height: 44,
@@ -437,9 +489,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(217,164,65,0.14)',
   },
-  cardText: { flex: 1, gap: 1 },
-  cardName: { fontSize: 16, lineHeight: 22 },
-  cardKind: { fontSize: 13, lineHeight: 18, color: colors.accent },
-  cardCity: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  cardText: { flex: 1, gap: 1, alignItems: 'center' },
+  cardName: { fontSize: 17, lineHeight: 24, textAlign: 'center', color: colors.accent },
+  cardKind: { fontSize: 13, lineHeight: 18, textAlign: 'center', color: 'rgba(240,215,160,0.9)' },
+  cardCity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
   cardCityText: { fontSize: 12, lineHeight: 16 },
 });

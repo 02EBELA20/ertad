@@ -84,7 +84,7 @@ export default function HomeScreen() {
             <AppText weight="bold" style={styles.title}>
               {ka.home.title}
             </AppText>
-            <AppText muted>{ka.home.assistantHint}</AppText>
+            <AppText style={styles.heroHint}>{ka.home.assistantHint}</AppText>
           </View>
 
           <View style={styles.inputWrap}>
@@ -152,12 +152,12 @@ export default function HomeScreen() {
 
           <View style={styles.footer}>
             <Pressable onPress={() => open(null)} accessibilityRole="button">
-              <AppText muted style={styles.linkText}>
+              <AppText style={[styles.linkText, { color: colors.accent }]}>
                 {ka.home.browseAll}
               </AppText>
             </Pressable>
             <Pressable onPress={() => router.push('/become-specialist')} accessibilityRole="button">
-              <AppText muted style={styles.linkText}>
+              <AppText style={[styles.linkText, { color: colors.accent }]}>
                 {ka.home.canDo}
               </AppText>
             </Pressable>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   content: { padding: 20, paddingTop: 32, gap: 24 },
-  hero: { gap: 10 },
+  hero: { gap: 10, alignItems: 'center' },
   spark: {
     width: 52,
     height: 52,
@@ -183,7 +183,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 30, lineHeight: 42 },
+  title: { fontSize: 30, lineHeight: 42, textAlign: 'center', color: colors.accent },
+  heroHint: { textAlign: 'center', color: 'rgba(240,215,160,0.85)', fontSize: 15, lineHeight: 22, maxWidth: 320 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -239,5 +240,5 @@ const styles = StyleSheet.create({
   },
   link: { paddingVertical: 4 },
   linkText: { fontSize: 15, lineHeight: 22, textDecorationLine: 'underline' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8 },
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: 28, paddingTop: 8 },
 });
