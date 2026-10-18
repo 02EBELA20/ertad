@@ -114,6 +114,7 @@ export default function BecomeSpecialistScreen() {
     setError(null);
     const { data, error: err } = await supabase.functions.invoke('draft-provider-profile', { body: { text } });
     setDrafting(false);
+    if (__DEV__) console.log('draft-provider-profile', { err, data });
     if (err || !data || !Array.isArray(data.ids)) {
       setError(ka.specialist.aiFailed);
       return;
@@ -208,7 +209,8 @@ export default function BecomeSpecialistScreen() {
   function goBack() {
     setError(null);
     if (step > 1) setStep(step - 1);
-    else router.back();
+    else if (router.canGoBack()) router.back();
+    else router.replace('/profile');
   }
 
   if (!loaded) return <SafeAreaView style={styles.safe} />;

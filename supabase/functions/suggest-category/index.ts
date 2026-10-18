@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
       messages: [{ role: 'user', content: prompt }],
     }),
   });
-  if (!res.ok) return json({ error: 'ai_failed' }, 502);
+  if (!res.ok) return json({ error: 'ai_failed', status: res.status, detail: (await res.text()).slice(0, 300) }, 502);
 
   const out = await res.json();
   const raw: string = out?.content?.[0]?.text ?? '';

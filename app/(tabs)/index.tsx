@@ -37,6 +37,7 @@ export default function HomeScreen() {
     setResults(null);
     const { data, error } = await supabase.functions.invoke('suggest-category', { body: { text: q } });
     setBusy(false);
+    if (__DEV__) console.log('suggest-category', { error, data });
     if (error || !data || !Array.isArray(data.ids)) {
       setFailed(true);
       return;

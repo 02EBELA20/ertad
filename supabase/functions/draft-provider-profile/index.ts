@@ -61,7 +61,9 @@ Deno.serve(async (req: Request) => {
     '"price":"short price note in Georgian or null"}. ' +
     'Rules: use ONLY facts stated by the user. Never invent years of experience, certifications, licenses, ' +
     'locations, guarantees or prices. "price" is non-null only if the user mentioned a price. ' +
-    'Keep a warm, plain, honest tone. If the text does not describe a service, return {"ids":[],"bio":"","price":null}.';
+    'Keep a warm, plain, honest tone. Even a very short text such as "I am a nanny" is enough: pick the ' +
+    'matching category and write a short, honest bio from just that fact. ' +
+    'Return empty values only if the text clearly does not describe any service.';
 
   const prompt =
     `Categories (id | name):\n${options.map((o) => `${o.id} | ${o.name}`).join('\n')}\n\n` +
@@ -81,7 +83,7 @@ Deno.serve(async (req: Request) => {
       messages: [{ role: 'user', content: prompt }],
     }),
   });
-  if (!res.ok) return json({ error: 'ai_failed' }, 502);
+  if (!res.ok) return json({ error: 'ai_failed', status: res.status, detail: (await res.text()).slice(0, 300) }, 502);
 
   const out = await res.json();
   const raw: string = out?.content?.[0]?.text ?? '';
@@ -95,8 +97,8 @@ Deno.serve(async (req: Request) => {
     if (typeof parsed.bio === 'string') bio = parsed.bio.trim().slice(0, 600);
     if (typeof parsed.price === 'string' && parsed.price.trim()) price = parsed.price.trim().slice(0, 60);
   } catch {
-    return json({ ids: [], bio: '', price: null });
+    return json({ ids: [], bio: '', price: null, debug: raw.slice(0, 300) });
   }
   ids = [...new Set(ids)].filter((id) => valid.has(id)).slice(0, 3);
-  return json({ ids, bio, price });
+  return json({ ids, bio, price, debug: ids.length === 0 && !bio ? raw.slice(0, 300) : undefined });
 });
